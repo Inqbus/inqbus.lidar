@@ -227,13 +227,13 @@ class Sonde(object):
         sf = open(sonde_filename, 'r')
         lines = sf.readlines()
         l = 0
-        while len(string.split(lines[l])) == 0:
+        while len(str.split(lines[l])) == 0:
             l = + 1
-        header_data = string.split(lines[l])
+        header_data = str.split(lines[l])
         result.header.location = header_data[1]
         result.header.WMO_id = header_data[0]
         result.header.time = datetime.datetime.strptime(
-            '%HZ %d %b %Y'.join(header_data[-4:]))
+            ' '.join(header_data[-4:]), '%HZ %d %b %Y')
         result.header.filename = 'rs_' + measurementID + '.nc'
 
         first_l = 0
@@ -244,21 +244,21 @@ class Sonde(object):
             if lines[l].count(mc.SONDE_BOTTOM_STR) and last_l == 0:
                 last_l = l - 1
             if lines[l].count('latitude'):
-                result.header.latitude = string.atof(
-                    string.split(lines[l], ':')[1])
+                result.header.latitude = float(
+                    str.split(lines[l], ':')[1])
             if lines[l].count('longitude'):
-                result.header.longitude = string.atof(
-                    string.split(lines[l], ':')[1])
+                result.header.longitude = float(
+                    str.split(lines[l], ':')[1])
             if lines[l].count('elevation'):
-                result.header.altitude = string.atof(
-                    string.split(lines[l], ':')[1])
+                result.header.altitude = float(
+                    str.split(lines[l], ':')[1])
 
         for line in lines[first_l: last_l]:
             try:
-                pp = string.atof(line[0:7])
-                alt = string.atof(line[7:14])
-                tt = string.atof(line[14:21])
-                rh = string.atof(line[28:35])
+                pp = float(line[0:7])
+                alt = float(line[7:14])
+                tt = float(line[14:21])
+                rh = float(line[28:35])
                 dummy['pp'].append(pp)
                 dummy['alt'].append(alt)
                 dummy['tt'].append(tt)
@@ -342,15 +342,15 @@ class Sonde(object):
         for l in range(len(lines) - 1, 0, -1):
             line_data = lines[l].split(';')
             try:
-                pp = string.atof(line_data[0])
-                alt = string.atof(
+                pp = float(line_data[0])
+                alt = float(
                     line_data[1].ljust(
                         line_data[1].rfind('.') + 4,
                         '0').replace(
                         '.',
                         ''))
-                tt = string.atof(line_data[2].replace(',', '.'))
-                rh = string.atof(line_data[4])
+                tt = float(line_data[2].replace(',', '.'))
+                rh = float(line_data[4])
                 dummy['pp'].append(pp)
                 dummy['alt'].append(alt)
                 dummy['tt'].append(tt)
@@ -593,7 +593,7 @@ class Measurement(object):
                 line_data = l.split()
                 data_ok = True
                 for ld in line_data[2:]:
-                    if string.atof(ld) < -100:
+                    if float(ld) < -100:
                         data_ok = False
                 if data_ok:
                     time = datetime.datetime.strptime(
