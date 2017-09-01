@@ -1,0 +1,47 @@
+How to install scc_interface
+
+1) install Anaconda
+	* install Anaconda
+	* setup poxy settings for conda: Erzeuge c:\users\***\.continuum.condarc
+	* dort hinein : 
+	----------------------------------------
+	proxy_servers:
+	    http: http://ofsquid.dwd.de:8080
+	    https: https://ofsquid.dwd.de:8080
+	-----------------------------------------
+2) install PyCharm and download code
+	* erzeuge c:\users\***\.hgrc
+	* dort hinein
+	-----------------------------------------
+	[http_proxy]
+	
+	host = ofsquid.dwd.de:8080
+	-----------------------------------------
+	*checkout github
+	* file -> settings -> project interpreter = aktuelles python (z.B c:\anaconda\python.exe)
+				-> build -> console -> always
+				-> tools -> external tools 	-> C:\Qt\4.8.4\bin\designer.exe																		-> Parameters = $FileName$, WorkingDir = $FileDir$
+	* run -> edit config 	-> +Python RAPLH_scc_interface (projekt name)#
+					-> script = path\to\inqbus.lidar.scc_gui\src\inqbus\lidar\scc_gui\app.py
+					-> single instance only
+					-> python interpreter = Default
+					-> working directory = path\to\inqbus.lidar.scc_gui\src\inqbus\lidar\scc_gui
+	* unten links, monitor-Symbol anklicken -> debug+mercurial-Fenster
+
+3) install pyqtgraph: Anaconda command line> conda install pyqtgraph
+3a) pip install -i https://pypi.anaconda.org/ales-erjavec/simple pyqt4
+4) conda install setuptools==19.2
+5) wenn andere Pakete fehlen und conda nicht funktioniert (z.B. argparse): 
+			Anaconda command line> pip install --proxy=http://ofsquid.dwd.de:8080 Paketname
+6) Installiere pyinstaller (mit pip)
+7) installiere argparse
+8) erzeuge packages:
+	...myPrograms\python\path\to\inqbus.lidar.components> python setup.py develop
+	...myPrograms\python\path\to\inqbus.lidar.scc_gui> python setup.py develop
+
+9) erzeuge executable:
+	* Pfade und *.ui files eintragen in ...myPrograms\python\path\to\inqbus.lidar.scc_gui\src\inqbus\lidar\scc_gui\app.spec
+	* ...myPrograms\python\path\to\inqbus.lidar.scc_gui\src\inqbus\lidar\scc_gui> pyinstaller app.spec
+
+
+ 
