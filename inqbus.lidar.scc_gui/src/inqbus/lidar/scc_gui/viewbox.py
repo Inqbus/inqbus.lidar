@@ -212,10 +212,11 @@ class FixedViewBox(pg.ViewBox):
     def mouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton and self.menuEnabled():
             super(FixedViewBox, self).mouseClickEvent(ev)
-        elif ev.button() == QtCore.Qt.MiddleButton:
-            self.middle_button_clicked(ev)
 
-    def middle_button_clicked(self, ev):
+    def mouseDoubleClickEvent(self, event):
+        self.mouse_double_click(event)
+
+    def mouse_double_click(self, ev):
         ev.accept()
 
         self.plot.add_region(ev.scenePos())
