@@ -35,6 +35,7 @@ class Histo(HistogramLUTItem):
         self.gradient = Gradient()
         self.gradient.setOrientation('bottom')
         self.gradient.restoreState(GRADIENT)
+        self.gradient.loadPreset('cyclic')
         self.region = LinearRegionItem([0, 1], LinearRegionItem.Vertical)
         self.region.setZValue(1000)
         self.vb.addItem(self.region)
