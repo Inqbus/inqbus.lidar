@@ -35,6 +35,8 @@ class RegionMenu(QtGui.QMenu):
         self.show = self.addAction('Show')
         self.show.triggered.connect(self.view.show)
 
+        self.addSeparator()
+
         self.save_as_scc = self.addAction('Filter and save as scc file')
         self.save_as_scc.triggered.connect(self.view.save_as_scc)
 

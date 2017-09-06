@@ -40,13 +40,21 @@ class LimitsViewBoxMenu(ViewBoxMenu):
         self.ctrl = []
         self.widgetGroups = []
         self.dv = QtGui.QDoubleValidator(self)
-        for axis in 'XY':
 
+        for axis in 'XY':
             w = ui = uic.loadUi(
                 resource_path(
                     os.path.join(
                         PROJECT_PATH,
                         'UI/axisCtrlTemplate.ui')))
+
+            # x is a time axis so we use bins to set axis
+            if axis == 'X':
+                ui.unitCombo.addItems(['bins'])
+            # y is a distance axis with different units
+            if axis == 'Y':
+                ui.unitCombo.addItems(['m', 'km'])
+
             sub_a = QtGui.QWidgetAction(self)
             sub_a.setDefaultWidget(w)
 
@@ -61,6 +69,7 @@ class LimitsViewBoxMenu(ViewBoxMenu):
                 (ui.manualRadio.clicked, 'ManualClicked'),
                 (ui.minText.editingFinished, 'MinTextChanged'),
                 (ui.maxText.editingFinished, 'MaxTextChanged'),
+                (ui.unitCombo.currentIndexChanged, 'UnitComboChanged'),
                 (ui.minText_2.editingFinished, 'MinTextChanged_2'),
                 (ui.maxText_2.editingFinished, 'MaxTextChanged_2'),
                 (ui.cbLimits.stateChanged, 'cbLimitsChanged'),
@@ -152,14 +161,8 @@ class LimitsViewBoxMenu(ViewBoxMenu):
             finally:
                 c.blockSignals(False)
 
-            self.ctrl[i].autoPanCheck.setChecked(state['autoPan'][i])
-            self.ctrl[i].visibleOnlyCheck.setChecked(
-                state['autoVisibleOnly'][i])
-            xy = ['x', 'y'][i]
-            self.ctrl[i].invertCheck.setChecked(
-                state.get(xy + 'Inverted', False))
-
         self.valid = True
+
 
     def xMinTextChanged_2(self):
         # ToDo: Error! We are changing only one of many views
@@ -177,6 +180,57 @@ class LimitsViewBoxMenu(ViewBoxMenu):
     def yMaxTextChanged_2(self):
         self.ctrl[1].cbLimits.setChecked(True)
         self.view().setLimits(yMax=float(self.ctrl[0].maxText_2.text()))
+
+    def get_min_and_max(self, ctrl_index):
+        self.ctrl[ctrl_index].manualRadio.setChecked(True)
+
+        min = float(self.ctrl[ctrl_index].minText.text())
+        max = float(self.ctrl[ctrl_index].maxText.text())
+
+        # to fit units in y range, m/bins are equal
+        if self.ctrl[ctrl_index].unitCombo.currentText() == 'km':
+            min = min * 1000.0
+            max = max * 1000.0
+
+        return min, max
+
+    def update_unit_combo(self, ctrl_index):
+        # update Range will update fields to default unit, so we do the same
+        self.ctrl[ctrl_index].unitCombo.blockSignals(True)
+        self.ctrl[ctrl_index].unitCombo.setCurrentIndex(0)
+        self.ctrl[ctrl_index].unitCombo.blockSignals(False)
+
+    def updateXRange(self):
+        min, max = self.get_min_and_max(0)
+
+        self.view().setXRange(min, max, padding=0)
+
+        self.update_unit_combo(0)
+        
+    def updateYRange(self):
+        min, max = self.get_min_and_max(1)
+
+        self.view().setYRange(min, max, padding=0)
+
+        self.update_unit_combo(1)
+
+    def xMinTextChanged(self):
+        self.updateXRange()
+
+    def xMaxTextChanged(self):
+        self.updateXRange()
+
+    def yMinTextChanged(self):
+        self.updateYRange()
+
+    def yMaxTextChanged(self):
+        self.updateYRange()
+
+    def xUnitComboChanged(self):
+        self.updateXRange()
+
+    def yUnitComboChanged(self):
+        self.updateYRange()
 
     def xcbLimitsChanged(self):
         if self.ctrl[0].cbLimits.isChecked():
