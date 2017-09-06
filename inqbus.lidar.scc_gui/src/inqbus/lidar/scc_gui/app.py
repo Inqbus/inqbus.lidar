@@ -130,7 +130,6 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
     def showRawOpenDialog(self):
         sender = self.sender()
-        filename = self.getCurrentPath()
         filename = mc.DATA_PATH
 
         file_path = QtWidgets.QFileDialog.getOpenFileName(

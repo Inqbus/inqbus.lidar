@@ -1,10 +1,11 @@
 import os
+from PyQt5 import QtWidgets
 
 from pyqtgraph import LinearRegionItem
 from pyqtgraph.Qt import QtGui, QtCore, uic
 
 import inqbus.lidar.components.params as rp
-from inqbus.lidar.components.error import NoCalIdxFound, WrongFileFormat
+from inqbus.lidar.components.error import NoCalIdxFound, WrongFileFormat, WrongFileStorage
 from inqbus.lidar.scc_gui import PROJECT_PATH
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.configs.base_config import resource_path
@@ -97,7 +98,7 @@ class SCC_raw_Params_Dialog(QtGui.QDialog):
 
     def __init__(self, a_parent_region, a_plot):
         super(SCC_raw_Params_Dialog, self).__init__()
-        uic.loadUi(
+        self.ui = uic.loadUi(
             resource_path(
                 os.path.join(
                     PROJECT_PATH,
@@ -105,6 +106,9 @@ class SCC_raw_Params_Dialog(QtGui.QDialog):
             self)
         self.plot = a_plot
         self.parent_region = a_parent_region
+
+        self.ui.openFile.clicked.connect(self.openFileDialog)
+
         if self.plot.measurement.header.measurement_id == '':
             self.MeasurementID_Edit.setText(self.plot.measurement.time_axis.start[int(
                 round(a_parent_region.getRegion()[0]))].strftime('%Y%m%d') + rp.STATION_ID + '__')
@@ -138,6 +142,30 @@ class SCC_raw_Params_Dialog(QtGui.QDialog):
         This is called if you click on the Cancel button
         """
         super(SCC_raw_Params_Dialog, self).reject()
+
+    def openFileDialog(self):
+        try:
+            filepath = self.showRawOpenDialog()
+            self.SondeFile_Edit.setText(filepath)
+        except WrongFileStorage:
+            QtGui.QMessageBox.about(
+                self, "Done", "sonde file must be located under %s" % mc.SONDE_PATH)
+
+    def showRawOpenDialog(self):
+        sender = self.sender()
+        filename = mc.SONDE_PATH
+
+        file_path = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            "Open raw data file",
+            QtCore.QDir().filePath(filename),
+            '*.txt')[0]
+
+        if mc.SONDE_PATH in file_path:
+            file_path = file_path.replace(mc.SONDE_PATH + '/', '')
+            return qt2pythonStr(file_path)
+        else:
+            raise WrongFileStorage
 
 
 class SCC_DPcal_Params_Dialog(QtGui.QDialog):
