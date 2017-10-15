@@ -24,3 +24,9 @@ class WrongFileFormat(LidarError):
     """
     Raised for unexpected File Types
     """
+
+
+class WrongFileStorage(LidarError):
+    """
+    Raised for unexpected File Types
+    """

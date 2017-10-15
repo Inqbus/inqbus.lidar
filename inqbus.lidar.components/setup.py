@@ -47,6 +47,7 @@ setup(name='inqbus.lidar.components',
           'numexpr',
           'pytest',
           'pyqtgraph',
+          'scipy',
       ],
       entry_points="""
       # -*- Entry points: -*-
