@@ -183,3 +183,11 @@ REGION_INITIAL_WIDTH_IN_BINS = 20
 GRADIENT = {'ticks': [(0.0, (0, 0, 0, 255)), (1.0, (255, 255, 255, 255))],
             'mode': 'rgb',
             'edge_colors': [(255, 0, 0), (0, 0, 255)]}
+
+STATION_ID = 'oh'
+
+SONDE_STATIONS = {'10954': {'name': 'Altenstadt', 'lat': 47.50, 'lon': 10.52, 'alt': 756},
+                  '10962': {'name': 'Hohenpeissenberg', 'lat': 47.8, 'lon': 11.01, 'alt': 977},
+                  '11120': {'name': 'Innsbruck', 'lat': 47.16, 'lon': 11.21, 'alt': 593},
+                  '10868': {'name': 'Oberschleissheim', 'lat': 48.25, 'lon': 11.55, 'alt': 492},
+                  '12374': {'name': 'Legionowo', 'lat': 52.40, 'lon': 20.96, 'alt': 96}}

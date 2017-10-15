@@ -4,7 +4,6 @@ from PyQt5 import QtWidgets
 from pyqtgraph import LinearRegionItem
 from pyqtgraph.Qt import QtGui, QtCore, uic
 
-import inqbus.lidar.components.params as rp
 from inqbus.lidar.components.error import NoCalIdxFound, WrongFileFormat, WrongFileStorage
 from inqbus.lidar.scc_gui import PROJECT_PATH
 from inqbus.lidar.scc_gui.configs import main_config as mc
@@ -111,7 +110,7 @@ class SCC_raw_Params_Dialog(QtGui.QDialog):
 
         if self.plot.measurement.header.measurement_id == '':
             self.MeasurementID_Edit.setText(self.plot.measurement.time_axis.start[int(
-                round(a_parent_region.getRegion()[0]))].strftime('%Y%m%d') + rp.STATION_ID + '__')
+                round(a_parent_region.getRegion()[0]))].strftime('%Y%m%d') + mc.STATION_ID + '__')
         else:
             self.MeasurementID_Edit.text = self.plot.measurement.header.measurement_id
 
@@ -182,7 +181,7 @@ class SCC_DPcal_Params_Dialog(QtGui.QDialog):
         self.parent_region = a_parent_region
         if self.plot.measurement.header.measurement_id == '':
             self.MeasurementID_Edit.setText(self.plot.measurement.time_axis.start[int(
-                round(a_parent_region.getRegion()[0]))].strftime('%Y%m%d') + rp.STATION_ID + '__')
+                round(a_parent_region.getRegion()[0]))].strftime('%Y%m%d') + mc.STATION_ID + '__')
         else:
             self.MeasurementID_Edit.text = self.plot.measurement.header.measurement_id
 
