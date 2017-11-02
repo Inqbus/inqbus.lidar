@@ -160,11 +160,11 @@ class SCC_raw_Params_Dialog(QtGui.QDialog):
             QtCore.QDir().filePath(filename),
             '*.txt')[0]
 
-        if mc.SONDE_PATH in file_path:
-            file_path = file_path.replace(mc.SONDE_PATH + '/', '')
-            return qt2pythonStr(file_path)
-        else:
-            raise WrongFileStorage
+#        if mc.SONDE_PATH in file_path:
+        file_path = file_path.replace(mc.SONDE_PATH + '/', '')
+        return qt2pythonStr(file_path)
+#        else:
+#            raise WrongFileStorage
 
 
 class SCC_DPcal_Params_Dialog(QtGui.QDialog):
