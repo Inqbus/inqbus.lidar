@@ -42,12 +42,6 @@ setup(name='inqbus.lidar.components',
       install_requires=[
           'setuptools',
           # -*- Extra requirements: -*-
-          'argparse',
-          'numpy',
-          'numexpr',
-          'pytest',
-          'pyqtgraph',
-          'scipy',
       ],
       entry_points="""
       # -*- Entry points: -*-

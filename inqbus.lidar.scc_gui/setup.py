@@ -44,12 +44,6 @@ setup(name='lidar.scc_gui',
       install_requires=[
           'setuptools',
           # -*- Extra requirements: -*-
-          'argparse',
-          'numpy',
-          'numexpr',
-          'pytest',
-          'pyqtgraph',
-          'netCDF4',
       ],
       entry_points="""
       # -*- Entry points: -*-
