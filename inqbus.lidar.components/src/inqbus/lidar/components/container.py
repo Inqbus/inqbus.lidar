@@ -484,7 +484,9 @@ class ZAxis(object):
         return self._altitude_axis
 
     def m_2_bin(self, altitude_m):
-        return np.where(self._height_axis.data > altitude_m)[0][0]
+        res =  np.where(self._height_axis.data > altitude_m)
+        res = res[0][0]
+        return res
 
 
 class Measurement(object):
