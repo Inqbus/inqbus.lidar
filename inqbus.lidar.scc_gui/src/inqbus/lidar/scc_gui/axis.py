@@ -1,6 +1,10 @@
 import pyqtgraph as pg
 import time
 import datetime
+import sys
+import traceback as tb
+
+from inqbus.lidar.scc_gui import logger
 
 ONE_DAY = datetime.timedelta(1)
 ONE_MONTH = datetime.timedelta(30)
@@ -27,12 +31,16 @@ class HeightAxis(DataAxis):
             if value < self.axis_data.shape[0]:
                 datavalues.append(self.axis_data[int(value)])
         try:
-            min_value = self.axis_data[min(datavalues)]
+            min_value = min(datavalues)
         except BaseException:
+            logger.error("Exception: %s" % sys.exc_info()[0])
+            logger.error("Traceback: %s" % tb.format_tb(sys.exc_info()[2]))
             min_value = self.axis_data[0]
         try:
-            max_value = self.axis_data[max(datavalues)]
+            max_value = max(datavalues)
         except BaseException:
+            logger.error("Exception: %s" % sys.exc_info()[0])
+            logger.error("Traceback: %s" % tb.format_tb(sys.exc_info()[2]))
             max_value = self.axis_data[-1]
 
         rng = abs(max_value - min_value)
@@ -45,6 +53,7 @@ class HeightAxis(DataAxis):
                     strns.append('')
             label = 'm'
         else:
+            # TODO: Sometimes single values are displayed as meter
             for x in datavalues:
                 try:
                     strns.append(str(round(x / 1000., 2)))
