@@ -2,5 +2,6 @@ pyqt
 numpy
 scipy
 pyqtgraph
+hdf5
 
 
