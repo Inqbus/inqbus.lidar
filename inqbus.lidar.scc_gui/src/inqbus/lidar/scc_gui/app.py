@@ -36,7 +36,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             self.setActiveSubWindow)
 
         self.menuNew.actions()[0].triggered.connect(self.newQuicklookPlot)
-        self.menuNew.actions()[1].triggered.connect(self.newQuicklookPlot)
+        # self.menuNew.actions()[1].triggered.connect(self.newQuicklookPlot)
 
         # menu
         self.setup_menu()
