@@ -30,3 +30,8 @@ class WrongFileStorage(LidarError):
     """
     Raised for unexpected File Types
     """
+
+class PathDoesNotExist(LidarError):
+    """
+    Raised for missing files and dirs
+    """
