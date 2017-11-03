@@ -3,10 +3,11 @@ import os
 
 import numpy as np
 import pyqtgraph as pg
+from inqbus.lidar.components.error import PathDoesNotExist
 from pyqtgraph.Qt import QtCore, QtGui
 
 from inqbus.lidar.components.regions import Regions
-from inqbus.lidar.scc_gui import util
+from inqbus.lidar.scc_gui import util, logger
 from inqbus.lidar.scc_gui.axis import DateAxis, HeightAxis
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.histo import Histo
@@ -217,8 +218,12 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
 
         self.measurement.mask[0: region_start] = 0
         self.measurement.mask[region_stop:] = 0
-        self.measurement.write_scc_raw_signal(os.path.join(
-            mc.OUT_PATH, self.measurement.scc_raw_filename()))
+        if os.path.exists(mc.OUT_PATH):
+            self.measurement.write_scc_raw_signal(os.path.join(
+                mc.OUT_PATH, self.measurement.scc_raw_filename()))
+        else:
+            logger.error("%s does not exist." % mc.OUT_PATH)
+            raise PathDoesNotExist
 
     def save_as_depolcal_scc(self, a_region):
         region_start, region_stop = self.clear_region_borders(a_region)
