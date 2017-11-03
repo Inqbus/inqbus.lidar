@@ -2,6 +2,8 @@ import datetime
 import os
 import string
 import zipfile
+import sys
+import traceback as tb
 from collections import Counter
 
 import numpy as np
@@ -771,12 +773,14 @@ class Measurement(object):
         try:
             Measurement.read_signal(result, sig_filename)
         except error.LidarError:
-            pass  # ToDo : Here a handler has to be implemented
+            logger.error("Exception: %s" % sys.exc_info()[0])
+            logger.error("Traceback: %s" % tb.format_tb(sys.exc_info()[2]))
 
         try:
             Measurement.read_log(result, syslog_filename)
         except error.LidarError:
-            pass  # ToDo : Here a handler has to be implemented
+            logger.error("Exception: %s" % sys.exc_info()[0])
+            logger.error("Traceback: %s" % tb.format_tb(sys.exc_info()[2]))
 
         return result
 
