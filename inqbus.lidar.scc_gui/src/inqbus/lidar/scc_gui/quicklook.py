@@ -40,8 +40,8 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
         viewbox = self.contour_plot.vb
         viewbox.enableAutoRange(viewbox.YAxis, False)
         viewbox.setYRange(
-            self.height_axis.axis_data[int(self.height_axis.range[0])],
-            mc.MAX_PLOT_ALTITUDE * 1.0)
+            self.height_axis.range[0],
+            self.measurement.z_axis.m_2_bin(mc.MAX_PLOT_ALTITUDE) * 1.0)
 
     def layout(self):
         # Internal Layout for the contour and the profile plot

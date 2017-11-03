@@ -22,28 +22,32 @@ class HeightAxis(DataAxis):
 
     def tickStrings(self, values, scale, spacing):
         strns = []
+        datavalues = []
+        for value in values:
+            if value < self.axis_data.shape[0]:
+                datavalues.append(self.axis_data[int(value)])
         try:
-            min_value = self.axis_data[min(values)]
+            min_value = self.axis_data[min(datavalues)]
         except BaseException:
             min_value = self.axis_data[0]
         try:
-            max_value = self.axis_data[max(values)]
+            max_value = self.axis_data[max(datavalues)]
         except BaseException:
             max_value = self.axis_data[-1]
 
         rng = abs(max_value - min_value)
 
         if rng < KILOMETER_LABEL_RANGE:
-            for x in values:
+            for x in datavalues:
                 try:
-                    strns.append(str(x))
+                    strns.append(str(round(x, 3)))
                 except BaseException:
                     strns.append('')
             label = 'm'
         else:
-            for x in values:
+            for x in datavalues:
                 try:
-                    strns.append(str(x / 1000.))
+                    strns.append(str(round(x / 1000., 2)))
                 except BaseException:
                     strns.append('')
             label = 'km'
