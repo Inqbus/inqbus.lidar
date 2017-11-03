@@ -580,6 +580,7 @@ class Measurement(object):
             try:
                 log_file = open(syslog_filename, 'r')
             except IOError:
+                logger.warning("%s does not exist" % syslog_filename)
                 raise error.LidarFileNotFound
 
             data = {
