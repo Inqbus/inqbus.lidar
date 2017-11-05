@@ -5,12 +5,13 @@ import zipfile
 from collections import Counter
 
 import numpy as np
+from inqbus.lidar.scc_gui import logger
 from netCDF4 import Dataset
 from scipy.io import netcdf
 
 import inqbus.lidar.components.params as rp
 from inqbus.lidar.components import nameddict, error
-from inqbus.lidar.components.error import NoCalIdxFound
+from inqbus.lidar.components.error import NoCalIdxFound, PathDoesNotExist
 from inqbus.lidar.components.util import get_file_from_path
 from inqbus.lidar.scc_gui.configs import main_config as mc
 
@@ -506,9 +507,13 @@ class Measurement(object):
 
     def read_signal(self, sig_filename):
         if sig_filename.endswith('.zip'):
-            zfile = zipfile.ZipFile(sig_filename)
-            nc_filename = zfile.extract(zfile.namelist()[0], mc.TEMP_PATH)
-            zfile.close()
+            if os.path.exists(mc.TEMP_PATH):
+                zfile = zipfile.ZipFile(sig_filename)
+                nc_filename = zfile.extract(zfile.namelist()[0], mc.TEMP_PATH)
+                zfile.close()
+            else:
+                logger.error('%s does not exist' % mc.TEMP_PATH)
+                raise PathDoesNotExist
         elif sig_filename.endswith('.nc'):
             nc_filename = sig_filename
 

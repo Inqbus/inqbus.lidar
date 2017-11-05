@@ -2,80 +2,22 @@
 # application and the plattform and the environment.
 
 
-# Build chan-0 to chan_7 channames
-#CHANNEL_NAMES = { chan_id : "chan_%s" % chan_id for chan_id in range(9)}
 from PyQt5 import QtGui
 
-CHANNEL_NAMES = {chan_id: "chan_%s" % chan_id for chan_id in range(18)}
+# Build chan-0 to chan_7 channames
+CHANNEL_NAMES = {chan_id: "chan_%s" % chan_id for chan_id in range(9)}
 
-CHANNEL_ID = [
-    387,
-    388,
-    389,
-    390,
-    395,
-    398,
-    397,
-    396,
-    445,
-    999,
-    999,
-    999,
-    999,
-    999,
-    999,
-    999,
-    999,
-    999]
+CHANNEL_ID = [503,  504,  505,  506,  507,  508,  509,  510, 999] #Ralph operational scc
+#CHANNEL_ID =  [387,  388,  389,  390,  395,  398,  397,  396, 445] #Ralph development scc
 
-CHANNEL_ID_STR = [
-    'wa_355p',
-    'wa_355s',
-    'wa_387_fr',
-    'wa_407',
-    'wa_532p',
-    'wa_532s',
-    'wa_607_fr',
-    'wa_1064',
-    'wa_355total_nr',
-    'wa_387_nr',
-    'wa_532total_nr',
-    'wa_607_nr',
-    'wa_355total_fr',
-    'wa_532total_fr',
-    'wa_387',
-    'wa_355total',
-    'wa_607',
-    'wa_532total']  # ADR
+CHANNEL_ID_STR = ['oh000',  'oh001',  'oh002',  'oh003',  'oh008',  'oh011',  'oh010',  'oh009', 'oh012'] #Ralph
 
 
-RANGE_ID = [1, 1, 1, 1, 1, 1, 1, 1,
-            0, 0, 0, 0,
-            1, 1, 1, 1, 1, 1]
+RANGE_ID = [1,    1,    1,    1,    1,    1,     0,    0,  1]
 
-#BG_FIRST    = [0,    0,    0,    0,    0,    0,    0,    0,   0]
-#BG_LAST     = [249,  249,  249,  249,  249,  249,  249,  249, 249]
-BG_FIRST = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-BG_LAST = [
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240,
-    240]
-#BG_LAST     = [250,  250,  250,  250,  250,  250,  250,  250, 250]
+BG_FIRST    = [0,    0,    0,    0,    0,    0,    0,    0,   0]
+BG_LAST     = [249,  249,  249,  249,  249,  249,  249,  249, 249]
+
 #OVL_ID      = ['',   '',  '_532', '_532s', '_607', '_1064', '', '', '']
 #CHAN_NC_POS = [0,1,2,3,4,5,6,7,2]
 
@@ -88,49 +30,24 @@ OVL_ID = [
     '',
     '',
     '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
     '']
-CHAN_NC_POS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 4, 2, 0, 6, 4]
+CHAN_NC_POS = [0, 1, 2, 3, 4, 5, 6, 7, 2]
 
 #DOUBLE_CHAN = 2
-NUM_DOUBLE_CHANNELS = 6
+NUM_DOUBLE_CHANNELS = 1
 
-#NUM_CAL_CHANNELS = 4
-# CAL_CHANNEL_SCC_ID =      [391, 392, 393, 394] #scc test version: 532s+45, 532s-45, 532+45, 532-45
-# CAL_CHANNEL_SCC_ID_STR =  ['oh004', 'oh005', 'oh006', 'oh007'] #scc test version: 532s+45, 532s-45, 532+45, 532-45
-# CAL_CHANNEL        =  [3,   3,   2,   2] #532s = channel 3, 532 = channel 2
-# CAL_IDX_RANGE      =  [0,   1,   0,   1] # 0 = first calibration
+NUM_CAL_CHANNELS = 4
+CAL_CHANNEL_SCC_ID =      [391, 392, 393, 394] #scc test version: 532s+45, 532s-45, 532+45, 532-45
+CAL_CHANNEL_SCC_ID_STR =  ['oh004', 'oh005', 'oh006', 'oh007'] #scc test version: 532s+45, 532s-45, 532+45, 532-45
+CAL_CHANNEL        =  [3,   3,   2,   2] #532s = channel 3, 532 = channel 2
+CAL_IDX_RANGE      =  [0,   1,   0,   1] # 0 = first calibration
 # position, 1 = second calibration position
-
-NUM_CAL_CHANNELS = 8
-CAL_CHANNEL_SCC_ID = [905, 906, 907, 908, 909, 910, 911, 912]  # ADR
-CAL_CHANNEL_SCC_ID_STR = [
-    'wa_532p_p45',
-    'wa_532p_m45',
-    'wa_532s_p45',
-    'wa_532s_m45',
-    'wa_355p_p45',
-    'wa_355p_m45',
-    'wa_355s_p45',
-    'wa_355s_m45']
-# 532 = channel 4, 532s = channel 5, 355 = channel 0, 355s = channel 1
-CAL_CHANNEL = [4, 4, 5, 5, 0, 0, 1, 1]
-# 0 = first calibration position, 1 = second calibration position
-CAL_IDX_RANGE = [1, 0, 1, 0, 1, 0, 1, 0]
 
 CALIB_RANGE_MIN = 1000
 CALIB_RANGE_MAX = 3000
 
 # rounded value of the variable 'depol_cal_angle' in case of normal measurement
-CAL_ANGLE_MEASUREMENT = 20
+CAL_ANGLE_MEASUREMENT = 0
 
 LIGHT_SPEED = 3E8
 
@@ -141,9 +58,9 @@ NB_OF_SCAN_ANGLES = 1
 GROUND_PRES = 1000.  # hPa
 GROUND_TEMP = 15.  # degC
 
-FIRST_VALID_BIN = 249
+FIRST_VALID_BIN = 251
 
-SCC_RAW_FILENAME_BODY = 'wa_ADR'
+SCC_RAW_FILENAME_BODY = 'oh_RALPH'
 
 SONDE_HEADER_STR = 'hPa'
 SONDE_BOTTOM_STR = 'Station'
@@ -164,18 +81,18 @@ PLOT_PROFILE_COLOR = {'chan_0': (0, 0, 255, 255),
                       'chan_6': (0, 128, 0, 255),
                       'chan_7': (155, 170, 0, 255),
                       'chan_8': (0, 255, 0, 255),
-                      'chan_9': (0, 255, 0, 255),
-                      'chan_10': (0, 255, 0, 255),
-                      'chan_11': (0, 255, 0, 255),
-                      'chan_12': (0, 0, 255, 255),
-                      'chan_13': (255, 255, 0, 255),
-                      'chan_14': (0, 255, 0, 255),
-                      'chan_15': (0, 255, 0, 255),
-                      'chan_16': (0, 0, 255, 255),
-                      'chan_17': (255, 255, 0, 255),
+#                      'chan_9': (0, 255, 0, 255),
+#                      'chan_10': (0, 255, 0, 255),
+#                      'chan_11': (0, 255, 0, 255),
+#                      'chan_12': (0, 0, 255, 255),
+#                      'chan_13': (255, 255, 0, 255),
+#                      'chan_14': (0, 255, 0, 255),
+#                      'chan_15': (0, 255, 0, 255),
+#                      'chan_16': (0, 0, 255, 255),
+#                      'chan_17': (255, 255, 0, 255),
 
                       }
-QUICKLOOK_CHANNEL = 'chan_7'
+QUICKLOOK_CHANNEL = 'chan_5'
 MAX_PLOT_ALTITUDE = 15000
 REGION_INVALID_BRUSH = QtGui.QBrush(QtGui.QColor(255, 0, 0, 50))
 REGION_NORMAL_BRUSH = QtGui.QBrush(QtGui.QColor(0, 0, 255, 50))
