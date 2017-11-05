@@ -13,7 +13,7 @@ from inqbus.lidar.scc_gui.util import qt2pythonStr
 
 os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
 
-in_file = os.path.join(mc.IN_PATH, rp.POLLY_FILES[0])
+#in_file = os.path.join(mc.IN_PATH, rp.POLLY_FILES[0])
 log_file = os.path.join(mc.LOG_PATH, rp.POLLY_FILES[0][:8] + '_temps.txt')
 
 
