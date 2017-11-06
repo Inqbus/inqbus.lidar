@@ -1,5 +1,7 @@
 import os
 import weakref
+import sys
+import traceback as tb
 
 import numpy as np
 import pyqtgraph as pg
@@ -7,8 +9,9 @@ from PyQt5 import uic
 from pyqtgraph.Qt import QtCore, QtGui
 from pyqtgraph.graphicsItems.ViewBox import ViewBox
 from pyqtgraph.graphicsItems.ViewBox.ViewBoxMenu import ViewBoxMenu
+from inqbus.lidar.scc_gui.configs import main_config as mc
 
-from inqbus.lidar.scc_gui import PROJECT_PATH
+from inqbus.lidar.scc_gui import PROJECT_PATH, logger
 from inqbus.lidar.scc_gui.configs.base_config import resource_path
 
 path = os.path.abspath(__file__)
@@ -53,7 +56,7 @@ class LimitsViewBoxMenu(ViewBoxMenu):
                 ui.unitCombo.addItems(['bins'])
             # y is a distance axis with different units
             if axis == 'Y':
-                ui.unitCombo.addItems(['m', 'km'])
+                ui.unitCombo.addItems(['bins', 'm', 'km'])
 
             sub_a = QtGui.QWidgetAction(self)
             sub_a.setDefaultWidget(w)
@@ -163,7 +166,6 @@ class LimitsViewBoxMenu(ViewBoxMenu):
 
         self.valid = True
 
-
     def xMinTextChanged_2(self):
         # ToDo: Error! We are changing only one of many views
         self.ctrl[0].cbLimits.setChecked(True)
@@ -189,10 +191,33 @@ class LimitsViewBoxMenu(ViewBoxMenu):
 
         # to fit units in y range, m/bins are equal
         if self.ctrl[ctrl_index].unitCombo.currentText() == 'km':
-            min = min * 1000.0
-            max = max * 1000.0
+            min = self.m_2_bin(min * 1000.0)
+            max = self.m_2_bin(max * 1000.0)
+        elif self.ctrl[ctrl_index].unitCombo.currentText() == 'm':
+            min = self.m_2_bin(min) * 1.0
+            max = self.m_2_bin(max) * 1.0
 
+        if min is None:
+            min = self.m_2_bin(0.0) * 1.0
+        if max is None:
+            max = self.m_2_bin(mc.MAX_PLOT_ALTITUDE) * 1.0
         return min, max
+
+    def m_2_bin(self, altitude_m):
+        try:
+            view = self.view()
+            data = view.plot.height_axis.axis_data
+            res =  np.where(data > altitude_m)
+            if res[0].size == 0:
+                res = None
+            else:
+                res = res[0][0]
+            return res
+
+        except BaseException as e:
+            logger.error("Exception: %s" % sys.exc_info()[0])
+            logger.error("Traceback: %s" % tb.format_tb(sys.exc_info()[2]))
+
 
     def update_unit_combo(self, ctrl_index):
         # update Range will update fields to default unit, so we do the same
