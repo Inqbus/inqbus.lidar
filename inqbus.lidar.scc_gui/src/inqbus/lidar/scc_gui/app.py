@@ -1,21 +1,18 @@
 import os
 import sys
+import traceback as tb
 
 from PyQt5 import QtCore, QtWidgets, uic, QtGui
 
 import inqbus.lidar.components.params as rp
 from inqbus.lidar.components.container import Measurement
-from inqbus.lidar.scc_gui import PROJECT_PATH
+from inqbus.lidar.scc_gui import PROJECT_PATH, logger
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.configs.base_config import resource_path, app_name
 from inqbus.lidar.scc_gui.quicklook import LIDARPlot
 from inqbus.lidar.scc_gui.util import qt2pythonStr
 
 os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
-
-#in_file = os.path.join(mc.IN_PATH, rp.POLLY_FILES[0])
-log_file = os.path.join(mc.LOG_PATH, rp.POLLY_FILES[0][:8] + '_temps.txt')
-
 
 class Ui_MainWindow(QtWidgets.QMainWindow):
 
@@ -89,7 +86,11 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
     def newQuicklookPlot(self):
         file_path = self.showRawOpenDialog()
-        log_file = os.path.join(mc.LOG_PATH, file_path[:8] + '_temps.txt')
+        file_name = os.path.basename(file_path)
+        log_file = os.path.join(mc.LOG_PATH, file_name[:8] + '_temps.txt')
+
+        if not os.path.exists(mc.LOG_PATH):
+            logger.warning("%s can not be found. Check if paths are configured correctly and all directories exist." % mc.LOG_PATH)
         if not file_path:
             # Cancel button pressed
             pass
