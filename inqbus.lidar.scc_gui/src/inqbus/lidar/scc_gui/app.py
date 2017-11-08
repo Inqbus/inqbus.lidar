@@ -87,10 +87,10 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
     def newQuicklookPlot(self):
         file_path = self.showRawOpenDialog()
         file_name = os.path.basename(file_path)
-        log_file = os.path.join(mc.LOG_PATH, file_name[:8] + '_temps.txt')
+        log_file = os.path.join(mc.LIDAR_LOG_PATH, file_name[:8] + '_temps.txt')
 
-        if not os.path.exists(mc.LOG_PATH):
-            logger.warning("%s can not be found. Check if paths are configured correctly and all directories exist." % mc.LOG_PATH)
+        if not os.path.exists(mc.LIDAR_LOG_PATH):
+            logger.warning("%s can not be found. Check if paths are configured correctly and all directories exist." % mc.LIDAR_LOG_PATH)
         if not file_path:
             # Cancel button pressed
             pass
