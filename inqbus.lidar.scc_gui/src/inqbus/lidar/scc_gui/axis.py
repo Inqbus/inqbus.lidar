@@ -34,13 +34,13 @@ class HeightAxis(DataAxis):
             min_value = min(datavalues)
         except BaseException:
             logger.error("Exception: %s" % sys.exc_info()[0])
-            logger.error("Traceback: %s" % tb.format_tb(sys.exc_info()[2]))
+            logger.error("Traceback: %s" % tb.format_exc())
             min_value = self.axis_data[0]
         try:
             max_value = max(datavalues)
         except BaseException:
             logger.error("Exception: %s" % sys.exc_info()[0])
-            logger.error("Traceback: %s" % tb.format_tb(sys.exc_info()[2]))
+            logger.error("Traceback: %s" % tb.format_exc())
             max_value = self.axis_data[-1]
 
         rng = abs(max_value - min_value)

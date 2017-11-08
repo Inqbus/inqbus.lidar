@@ -577,12 +577,12 @@ class Measurement(object):
 
         nc_file.close()
 
-    def read_log(self, syslog_filename):
-        if syslog_filename:
+    def read_log(self, lidarlog_filename):
+        if lidarlog_filename:
             try:
-                log_file = open(syslog_filename, 'r')
+                log_file = open(lidarlog_filename, 'r')
             except IOError:
-                logger.warning("%s does not exist" % syslog_filename)
+                logger.warning("%s does not exist" % lidarlog_filename)
                 raise error.LidarFileNotFound
 
             data = {
@@ -777,13 +777,13 @@ class Measurement(object):
             Measurement.read_signal(result, sig_filename)
         except error.LidarError:
             logger.error("Exception: %s" % sys.exc_info()[0])
-            logger.error("Traceback: %s" % tb.format_tb(sys.exc_info()[2]))
+            logger.error("Traceback: %s" % tb.format_exc())
 
         try:
             Measurement.read_log(result, syslog_filename)
         except error.LidarError:
             logger.error("Exception: %s" % sys.exc_info()[0])
-            logger.error("Traceback: %s" % tb.format_tb(sys.exc_info()[2]))
+            logger.error("Traceback: %s" % tb.format_exc())
 
         return result
 

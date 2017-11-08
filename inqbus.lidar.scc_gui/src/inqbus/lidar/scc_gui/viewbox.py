@@ -245,7 +245,7 @@ class LimitsViewBoxMenu(ViewBoxMenu):
 
         except BaseException as e:
             logger.error("Exception: %s" % sys.exc_info()[0])
-            logger.error("Traceback: %s" % tb.format_tb(sys.exc_info()[2]))
+            logger.error("Traceback: %s" % tb.format_exc())
 
 
     def block_signals_ranges(self, ctrl_index):
