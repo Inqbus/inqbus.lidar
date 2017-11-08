@@ -582,7 +582,7 @@ class Measurement(object):
             try:
                 log_file = open(lidarlog_filename, 'r')
             except IOError:
-                logger.warning("%s does not exist" % lidarlog_filename)
+                logger.warning("Lidar Log %s does not exist." % lidarlog_filename)
                 raise error.LidarFileNotFound
 
             data = {
@@ -781,6 +781,8 @@ class Measurement(object):
 
         try:
             Measurement.read_log(result, syslog_filename)
+        except error.LidarFileNotFound:
+            pass
         except error.LidarError:
             logger.error("Exception: %s" % sys.exc_info()[0])
             logger.error("Traceback: %s" % tb.format_exc())
