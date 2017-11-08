@@ -4,7 +4,7 @@ import datetime
 import sys
 import traceback as tb
 
-from inqbus.lidar.scc_gui import logger
+from inqbus.lidar.scc_gui.log import logger
 
 ONE_DAY = datetime.timedelta(1)
 ONE_MONTH = datetime.timedelta(30)

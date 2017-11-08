@@ -7,7 +7,7 @@ import traceback as tb
 from collections import Counter
 
 import numpy as np
-from inqbus.lidar.scc_gui import logger
+from inqbus.lidar.scc_gui.log import logger
 from netCDF4 import Dataset
 from scipy.io import netcdf
 

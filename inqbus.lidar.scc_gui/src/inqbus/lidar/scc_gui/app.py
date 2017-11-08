@@ -6,7 +6,8 @@ from PyQt5 import QtCore, QtWidgets, uic, QtGui
 
 import inqbus.lidar.components.params as rp
 from inqbus.lidar.components.container import Measurement
-from inqbus.lidar.scc_gui import PROJECT_PATH, logger
+from inqbus.lidar.scc_gui import PROJECT_PATH
+from inqbus.lidar.scc_gui.log import logger
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.configs.base_config import resource_path, app_name
 from inqbus.lidar.scc_gui.quicklook import LIDARPlot

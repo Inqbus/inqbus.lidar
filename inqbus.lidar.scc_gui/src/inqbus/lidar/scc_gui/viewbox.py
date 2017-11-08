@@ -11,7 +11,8 @@ from pyqtgraph.graphicsItems.ViewBox import ViewBox
 from pyqtgraph.graphicsItems.ViewBox.ViewBoxMenu import ViewBoxMenu
 from inqbus.lidar.scc_gui.configs import main_config as mc
 
-from inqbus.lidar.scc_gui import PROJECT_PATH, logger
+from inqbus.lidar.scc_gui import PROJECT_PATH
+from inqbus.lidar.scc_gui.log import logger
 from inqbus.lidar.scc_gui.configs.base_config import resource_path
 
 path = os.path.abspath(__file__)
@@ -136,8 +137,9 @@ class LimitsViewBoxMenu(ViewBoxMenu):
 
         for i in [0, 1]:  # x, y
             tr = state['targetRange'][i]
-            self.ctrl[i].minText.setText("%0.5g" % tr[0])
-            self.ctrl[i].maxText.setText("%0.5g" % tr[1])
+            tr_unit = self.convert_target_range_to_unit(tr, i)
+            self.ctrl[i].minText.setText("%0.5g" % tr_unit[0])
+            self.ctrl[i].maxText.setText("%0.5g" % tr_unit[1])
 
             if state['autoRange'][i] is not False:
                 self.ctrl[i].autoRadio.setChecked(True)
@@ -203,6 +205,33 @@ class LimitsViewBoxMenu(ViewBoxMenu):
             max = self.m_2_bin(mc.MAX_PLOT_ALTITUDE) * 1.0
         return min, max
 
+    def convert_target_range_to_unit(self, target_range, ctrl_index):
+        unit = self.ctrl[ctrl_index].unitCombo.currentText()
+
+        if unit == 'm':
+            result = []
+            for x in target_range:
+                result.append(self.bin_2_m(x))
+            return result
+        elif unit == 'km':
+            result = []
+            for x in target_range:
+                result.append(self.bin_2_m(x) / 1000.0)
+            return result
+        else:
+            return target_range
+
+
+    def bin_2_m(self, bin):
+        view = self.view()
+        data = view.plot.height_axis.axis_data
+        size = data.size
+        bin = int(bin)
+        if bin > size:
+            return data[-1]
+        else:
+            return data[bin]
+
     def m_2_bin(self, altitude_m):
         try:
             view = self.view()
@@ -219,25 +248,42 @@ class LimitsViewBoxMenu(ViewBoxMenu):
             logger.error("Traceback: %s" % tb.format_tb(sys.exc_info()[2]))
 
 
-    def update_unit_combo(self, ctrl_index):
-        # update Range will update fields to default unit, so we do the same
+    def block_signals_ranges(self, ctrl_index):
         self.ctrl[ctrl_index].unitCombo.blockSignals(True)
-        self.ctrl[ctrl_index].unitCombo.setCurrentIndex(0)
+        self.ctrl[ctrl_index].minText.blockSignals(True)
+        self.ctrl[ctrl_index].maxText.blockSignals(True)
+
+    def unblock_signals_ranges(self, ctrl_index):
+
+        self.ctrl[ctrl_index].minText.blockSignals(False)
+        self.ctrl[ctrl_index].maxText.blockSignals(False)
         self.ctrl[ctrl_index].unitCombo.blockSignals(False)
 
     def updateXRange(self):
         min, max = self.get_min_and_max(0)
 
+        self.block_signals_ranges(0)
+
         self.view().setXRange(min, max, padding=0)
 
-        self.update_unit_combo(0)
-        
+        self.unblock_signals_ranges(0)
+
     def updateYRange(self):
+        orig_min = self.ctrl[1].minText.text()
+        orig_max = self.ctrl[1].maxText.text()
+        orig_unit = self.ctrl[1].unitCombo.currentIndex()
+
         min, max = self.get_min_and_max(1)
+
+        self.block_signals_ranges(1)
 
         self.view().setYRange(min, max, padding=0)
 
-        self.update_unit_combo(1)
+        self.ctrl[1].minText.setText(orig_min)
+        self.ctrl[1].maxText.setText(orig_max)
+        self.ctrl[1].unitCombo.setCurrentIndex(orig_unit)
+
+        self.unblock_signals_ranges(1)
 
     def xMinTextChanged(self):
         self.updateXRange()

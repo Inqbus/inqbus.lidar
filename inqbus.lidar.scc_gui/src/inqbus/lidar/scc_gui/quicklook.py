@@ -7,7 +7,8 @@ from inqbus.lidar.components.error import PathDoesNotExist
 from pyqtgraph.Qt import QtCore, QtGui
 
 from inqbus.lidar.components.regions import Regions
-from inqbus.lidar.scc_gui import util, logger
+from inqbus.lidar.scc_gui import util
+from inqbus.lidar.scc_gui.log import logger
 from inqbus.lidar.scc_gui.axis import DateAxis, HeightAxis
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.histo import Histo
