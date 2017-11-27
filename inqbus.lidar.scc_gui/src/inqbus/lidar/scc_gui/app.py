@@ -11,6 +11,7 @@ from inqbus.lidar.scc_gui.log import logger
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.configs.base_config import resource_path, app_name
 from inqbus.lidar.scc_gui.quicklook import LIDARPlot
+from inqbus.lidar.scc_gui.res_plot import ResultData, ResultPlot
 from inqbus.lidar.scc_gui.util import qt2pythonStr
 
 os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
@@ -34,7 +35,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             self.setActiveSubWindow)
 
         self.menuNew.actions()[0].triggered.connect(self.newQuicklookPlot)
-        # self.menuNew.actions()[1].triggered.connect(self.newQuicklookPlot)
+        self.menuNew.actions()[1].triggered.connect(self.new321Plot)
 
         # menu
         self.setup_menu()
@@ -82,9 +83,6 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         MDI_win = QtWidgets.QMdiSubWindow()
         MDI_win.setCentralWidget(central_widget)
 
-    def newResultPlot(self):
-        file_path = self.showResultOpenDialog()
-
     def newQuicklookPlot(self):
         file_path = self.showRawOpenDialog()
         file_name = os.path.basename(file_path)
@@ -109,6 +107,20 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             self.mdiArea.addSubWindow(MDI_win)
             MDI_win.showMaximized()
 
+    def new321Plot(self):
+        file_path = self.showFolderOpenDialog()
+        print(file_path)
+
+        result_data = ResultData.from_directory(file_path)
+
+        MDI_win = QtWidgets.QMdiSubWindow(self)
+
+        GraphicsView = ResultPlot(MDI_win)
+        GraphicsView.setup(result_data)
+
+        self.mdiArea.addSubWindow(MDI_win)
+        MDI_win.showMaximized()
+
     def getCurrentPath(self):
         sender = self.sender()
 
@@ -118,22 +130,19 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             filename = QtCore.QDir.currentPath()
         return filename
 
-    def showResultOpenDialog(self):
+    def showFolderOpenDialog(self):
         sender = self.sender()
-        filename = self.getCurrentPath()
-        filename = "/data/hdf5/H235/0002"
+        filename = mc.RESULT_DATA_PATH
 
-        file_path = QtWidgets.QFileDialog.getOpenFileName(
+        file_path = QtWidgets.QFileDialog.getExistingDirectory(
             self,
-            "Open file(s) with optical profiles",
-            QtCore.QDir().filePath(filename),
-            'NC_Files (*.nc *.nc4 *.netcdf);;Zip_files (*.zip)')
+            "Open directory including data files",
+            QtCore.QDir().filePath(filename))
         return qt2pythonStr(file_path)
 
     def showRawOpenDialog(self):
         sender = self.sender()
         filename = mc.DATA_PATH
-
         file_path = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Open raw data file",
