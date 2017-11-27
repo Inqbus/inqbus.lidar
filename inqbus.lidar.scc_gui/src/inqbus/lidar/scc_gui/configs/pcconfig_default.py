@@ -24,6 +24,9 @@ OVL_PATH = os.path.join(BASE_PATH, 'overlaps')
 # this is the directory where lidar-log-files are located
 LIDAR_LOG_PATH = os.path.join(BASE_PATH, 'logs')
 
+# this is the path where data for 3+2+1 Plots is stored
+RESULT_DATA_PATH = os.path.join(BASE_PATH, 'end_data')
+
 # log files are written into this directory
 SYS_LOG_PATH = os.path.join(BASE_PATH, 'gui_log')
 # log files are written into this file

@@ -34,7 +34,7 @@
      <string>New</string>
     </property>
     <addaction name="actionLIDARPlot"/>
-    <!--<addaction name="action3_2_1"/>-->
+    <addaction name="action3_2_1"/>
    </widget>
    <addaction name="menuNew"/>
   </widget>
