@@ -109,7 +109,6 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
     def new321Plot(self):
         file_path = self.showFolderOpenDialog()
-        print(file_path)
 
         result_data = ResultData.from_directory(file_path)
 

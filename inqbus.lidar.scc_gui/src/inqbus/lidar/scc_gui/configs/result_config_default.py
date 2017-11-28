@@ -34,3 +34,8 @@ RES_AXES_LIMITS = {'Backscatter': (-.01, .1), \
                'angstroem': (-1., 3.), \
                'Depol': (-.001, .01), \
                }
+
+RES_DTYPES_FOR_MEAN_PROFILE = ['b355','b532','b1064','e355','e532']
+
+RES_PLOT_DEFAULT_MIN = -.001
+RES_PLOT_DEFAULT_MAX = .01
