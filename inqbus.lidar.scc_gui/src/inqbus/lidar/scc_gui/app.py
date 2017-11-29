@@ -36,6 +36,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
         self.menuNew.actions()[0].triggered.connect(self.newQuicklookPlot)
         self.menuNew.actions()[1].triggered.connect(self.new321Plot)
+        self.menuNew.actions()[2].triggered.connect(self.new321PlotFromZip)
 
         # menu
         self.setup_menu()
@@ -123,6 +124,22 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.mdiArea.addSubWindow(MDI_win)
         MDI_win.showMaximized()
 
+    def new321PlotFromZip(self):
+        file_path = self.showZipOpenDialog()
+
+        result_data = ResultData.from_zip(file_path)
+
+        MDI_win = QtWidgets.QMdiSubWindow(self)
+
+        GraphicsView = ResultPlot(MDI_win)
+        GraphicsView.setup(result_data)
+
+        MDI_win.setWidget(GraphicsView)
+        MDI_win.setWindowTitle(GraphicsView.title)
+
+        self.mdiArea.addSubWindow(MDI_win)
+        MDI_win.showMaximized()
+
     def getCurrentPath(self):
         sender = self.sender()
 
@@ -150,6 +167,16 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             "Open raw data file",
             QtCore.QDir().filePath(filename),
             'Zip_files (*.zip);;NC_Files (*.nc *.nc4 *.netcdf)')[0]
+        return qt2pythonStr(file_path)
+
+    def showZipOpenDialog(self):
+        sender = self.sender()
+        filename = mc.RESULT_DATA_PATH
+        file_path = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            "Open raw data file",
+            QtCore.QDir().filePath(filename),
+            'Zip_files (*.zip)')[0]
         return qt2pythonStr(file_path)
 
 
