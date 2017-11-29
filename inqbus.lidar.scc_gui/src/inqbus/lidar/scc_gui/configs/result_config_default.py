@@ -20,8 +20,8 @@ RES_DATA_SETTINGS = {'b355':{'color':'b', 'exists':False}, \
         'e532':{'color':'g', 'exists':False}, \
         'lr355':{'color':'b', 'exists':False}, \
         'lr532':{'color':'g', 'exists':False}, \
-        'e355bsc':{'color':'cyan', 'exists':False}, \
-        'e532bsc':{'color':'lime', 'exists':False}, \
+        'e355bsc':{'color':'#00FFFF', 'exists':False}, \
+        'e532bsc':{'color':'#32cd32', 'exists':False}, \
         'aeb_uv_vis':{'color':'b', 'exists':False}, \
         'aeb_vis_ir':{'color':'r', 'exists':False}, \
         'ae_ext':{'color':'g', 'exists':False}, \
@@ -36,6 +36,6 @@ RES_AXES_LIMITS = {'Backscatter': (-.01, .1), \
                }
 
 RES_DTYPES_FOR_MEAN_PROFILE = ['b355','b532','b1064','e355','e532']
+RES_DTYPES_FOR_LR = ['e355', 'e532']
 
-RES_PLOT_DEFAULT_MIN = -.001
-RES_PLOT_DEFAULT_MAX = .01
+RES_MIN_ALT = 0

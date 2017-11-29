@@ -14,7 +14,7 @@ from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.histo import Histo
 from inqbus.lidar.scc_gui.image import Image
 from inqbus.lidar.scc_gui.region import MenuLinearRegionItem
-from inqbus.lidar.scc_gui.viewbox import FixedViewBox
+from inqbus.lidar.scc_gui.viewbox import QLFixedViewBox
 
 
 class LIDARPlot(pg.GraphicsLayoutWidget):
@@ -153,7 +153,7 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
         # contourplot with the custom axis
         self.contour_plot = self.contour_profile_layout.addPlot(
             axisItems={'bottom': self.time_axis, 'left': self.height_axis},
-            viewBox=FixedViewBox(self)
+            viewBox=QLFixedViewBox(self)
             #            viewBox = pg.ViewBox()
         )
 

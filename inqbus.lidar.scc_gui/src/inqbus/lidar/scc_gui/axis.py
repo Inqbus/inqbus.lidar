@@ -66,30 +66,34 @@ class HeightAxis(DataAxis):
 
     def setRange(self, mn, mx):
         if self.axis_data is None:
-            return super(HeightAxis, self).setRange(mn, mx)
-        size = self.axis_data.size
-        if int(mn) > size:
-            mn_new = self.calculate_over_end(int(mn))
+            mn_new = mn
+            mx_new = mx
         else:
-            mn_new = self.axis_data[int(mn)]
+            size = self.axis_data.size
+            if int(mn) > size:
+                mn_new = self.calculate_over_end(int(mn))
+            else:
+                mn_new = self.axis_data[int(mn)]
 
-        if int(mx) > size:
-            mx_new = self.calculate_over_end(int(mx))
-        else:
-            mx_new = self.axis_data[int(mx)]
+            if int(mx) > size:
+                mx_new = self.calculate_over_end(int(mx))
+            else:
+                mx_new = self.axis_data[int(mx)]
 
         rng = abs(mx_new-mn_new)
 
         if rng == 0.0:
-            return
+            label = None
         elif rng < KILOMETER_LABEL_RANGE:
             label = 'm'
         else:
             label = 'km'
             mx_new = mx_new / 1000.0
             mn_new = mn_new / 1000.0
-        self.setLabel(text=label)
-        return super(HeightAxis, self).setRange(mn_new, mx_new)
+        res = super(HeightAxis, self).setRange(mn_new, mx_new)
+        if label:
+            self.setLabel(text=label)
+        return res
 
     def calculate_over_end(self, mn):
         size = self.axis_data.size
