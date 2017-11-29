@@ -154,6 +154,7 @@ app = QtWidgets.QApplication(sys.argv)
 app.setWindowIcon(QtGui.QIcon(resource_path('aesir.ico')))
 
 app.main_window = Ui_MainWindow()
+app.main_window.resize(mc.PLOT_WINDOW_SIZE[0], mc.PLOT_WINDOW_SIZE[1])
 app.main_window.construct()
 app.main_window.setWindowTitle(app_name)
 
