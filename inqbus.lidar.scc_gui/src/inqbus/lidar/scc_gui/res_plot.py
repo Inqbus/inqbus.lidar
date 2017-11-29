@@ -11,9 +11,21 @@ from inqbus.lidar.scc_gui import util
 from inqbus.lidar.scc_gui.axis import HeightAxis, DataAxis
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.log import logger
+import zipfile
+
 
 
 class ResultData(object):
+
+    @classmethod
+    def from_zip(cls, filepath):
+        zfile = zipfile.ZipFile(filepath)
+        zfile.extractall(mc.TEMP_PATH)
+        file_name = os.path.split(filepath)[-1]
+        file_name = file_name.split('.')[0]
+        unziped_path = os.path.join(mc.TEMP_PATH, file_name)
+        print(unziped_path)
+        return ResultData.from_directory(unziped_path)
 
     @classmethod
     def from_directory(cls, filepath):
