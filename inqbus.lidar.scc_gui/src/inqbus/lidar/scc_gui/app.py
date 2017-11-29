@@ -117,6 +117,9 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         GraphicsView = ResultPlot(MDI_win)
         GraphicsView.setup(result_data)
 
+        MDI_win.setWidget(GraphicsView)
+        MDI_win.setWindowTitle(GraphicsView.title)
+
         self.mdiArea.addSubWindow(MDI_win)
         MDI_win.showMaximized()
 
