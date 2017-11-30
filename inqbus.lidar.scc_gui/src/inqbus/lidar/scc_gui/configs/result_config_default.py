@@ -38,4 +38,7 @@ RES_AXES_LIMITS = {'Backscatter': (-.01, .1), \
 RES_DTYPES_FOR_MEAN_PROFILE = ['b355','b532','b1064','e355','e532']
 RES_DTYPES_FOR_LR = ['e355', 'e532']
 
+# add here to clear them of masked values, because pyqtplot behaves different with masked values. Masked values are replaced by NaN.
+RES_CLEAR_DTYPES = ['lr355', 'lr532', 'aeb_uv_vis', 'aeb_vis_ir', 'ae_ext']
+
 RES_MIN_ALT = 0
