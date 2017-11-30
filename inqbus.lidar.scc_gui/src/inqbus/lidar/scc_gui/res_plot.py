@@ -5,6 +5,7 @@ from math import log
 
 import numpy as np
 import pyqtgraph as pg
+from pyqtgraph.graphicsItems.LegendItem import ItemSample
 from scipy.io import netcdf
 
 from inqbus.lidar.scc_gui import util
@@ -504,17 +505,45 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.plots.append(self.angstroem_plot)
 
     def setLegends(self):
-        # TODO: Improve legend style and position
-
         for plot in self.plots:
-            legend = pg.LegendItem()
+            legend = ResultLegendItem()
             legend.setParentItem(plot)
             for item in plot.items:
                 if item.name():
                     legend.addItem(item, item.name())
-            for item in legend.items:
-                for single_item in item:
-                    if isinstance(single_item, pg.LabelItem):
-                        single_item.setText(single_item.text, **mc.LEGEND_LABEL_STYLE)
+
 
             plot.addLegend()
+
+
+class ResultLegendItem(pg.LegendItem):
+
+    def paint(self, p, *args):
+        p.setPen(pg.fn.mkPen(255, 255, 255, 100))
+        p.setBrush(pg.fn.mkBrush(220, 220, 220))
+        p.drawRect(self.boundingRect())
+
+    def addItem(self, item, name):
+        """
+        Add a new entry to the legend.
+
+        ==============  ========================================================
+        **Arguments:**
+        item            A PlotDataItem from which the line and point style
+                        of the item will be determined or an instance of
+                        ItemSample (or a subclass), allowing the item display
+                        to be customized.
+        title           The title to display for this item. Simple HTML allowed.
+        ==============  ========================================================
+        """
+        label = pg.LabelItem(name, **mc.LEGEND_LABEL_STYLE)
+        if isinstance(item, ItemSample):
+            sample = item
+        else:
+            sample = ItemSample(item)
+        row = self.layout.rowCount()
+        self.items.append((sample, label))
+        self.layout.addItem(sample, row, 0)
+        self.layout.addItem(label, row, 1)
+        self.updateSize()
+
