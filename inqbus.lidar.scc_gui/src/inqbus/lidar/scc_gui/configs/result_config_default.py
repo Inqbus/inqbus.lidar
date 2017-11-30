@@ -42,3 +42,5 @@ RES_DTYPES_FOR_LR = ['e355', 'e532']
 RES_CLEAR_DTYPES = ['lr355', 'lr532', 'aeb_uv_vis', 'aeb_vis_ir', 'ae_ext']
 
 RES_MIN_ALT = 0
+
+LEGEND_LABEL_STYLE = {'color': '#000', 'size': '10pt', 'bold': False, 'italic': False}
