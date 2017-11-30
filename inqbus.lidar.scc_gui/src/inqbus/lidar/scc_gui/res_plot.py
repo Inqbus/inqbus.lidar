@@ -505,15 +505,16 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.plots.append(self.angstroem_plot)
 
     def setLegends(self):
-        for plot in self.plots:
-            legend = ResultLegendItem()
-            legend.setParentItem(plot)
-            for item in plot.items:
-                if item.name():
-                    legend.addItem(item, item.name())
+        if mc.RES_SHOW_LEGEND:
+            for plot in self.plots:
+                legend = ResultLegendItem()
+                legend.setParentItem(plot)
+                for item in plot.items:
+                    if item.name():
+                        legend.addItem(item, item.name())
 
 
-            plot.addLegend()
+                plot.addLegend()
 
 
 class ResultLegendItem(pg.LegendItem):
