@@ -24,7 +24,6 @@ class ResultData(object):
         file_name = os.path.split(filepath)[-1]
         file_name = file_name.split('.')[0]
         unziped_path = os.path.join(mc.TEMP_PATH, file_name)
-        print(unziped_path)
         return ResultData.from_directory(unziped_path)
 
     @classmethod
@@ -52,6 +51,8 @@ class ResultData(object):
         obj.set_zero_line_data()
 
         obj.set_title()
+
+        obj.replace_masked_values()
 
         return obj
 
@@ -250,6 +251,7 @@ class ResultData(object):
             self.data[lr_type]['data'] = self.data[dtype]['Extinction']['mean']['data'][:] / self.data[dtype]['Backscatter']['mean'][
                                                                                        'data'][:]
             self.data[lr_type]['alt'] = self.data[dtype]['Extinction']['mean']['alt']
+
             self.data[lr_type]['exists'] = True
 
             if 'lidar_ratio' in self.axis_limits.keys():
@@ -307,6 +309,14 @@ class ResultData(object):
 
     def set_title(self):
         self.title = self.meas_id + ': ' + self.data['start_time'].strftime('%Y-%m-%d %H:%M:%S - ') + self.data['end_time'].strftime('%H:%M:%S')
+
+    def replace_masked_values(self):
+        # important to view all plots and lines. Otherwise some lines behave strange on zooming.
+        for dtype in mc.RES_CLEAR_DTYPES:
+            if self.data[dtype]['exists']:
+                self.data[dtype]['data'] = self.data[dtype]['data'].filled(fill_value=np.NaN)
+                self.data[dtype]['alt'] = self.data[dtype]['alt'].filled(fill_value=np.NaN)
+
 
 
 class ResultPlot(pg.GraphicsLayoutWidget):
