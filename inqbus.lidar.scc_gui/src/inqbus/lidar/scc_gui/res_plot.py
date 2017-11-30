@@ -505,11 +505,16 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
     def setLegends(self):
         # TODO: Improve legend style and position
+
         for plot in self.plots:
             legend = pg.LegendItem()
             legend.setParentItem(plot)
             for item in plot.items:
                 if item.name():
                     legend.addItem(item, item.name())
+            for item in legend.items:
+                for single_item in item:
+                    if isinstance(single_item, pg.LabelItem):
+                        single_item.setText(single_item.text, **mc.LEGEND_LABEL_STYLE)
 
             plot.addLegend()
