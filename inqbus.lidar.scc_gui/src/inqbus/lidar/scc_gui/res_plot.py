@@ -433,7 +433,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
     def setup_ext_profile(self):
         self.ext_plot = self.plot_layout.addPlot(
-            axisItems={'bottom': self.plot_2_axis, 'left': self.height_axis},
+            axisItems={'bottom': self.plot_2_axis},
             viewBox=pg.ViewBox()
         )
         self.ext_plot.hideAxis('left')
@@ -457,7 +457,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
     def setup_lidar_ratio(self):
         self.lidar_plot = self.plot_layout.addPlot(
-            axisItems={'bottom': self.plot_3_axis, 'left': self.height_axis},
+            axisItems={'bottom': self.plot_3_axis},
             viewBox=pg.ViewBox()
         )
         self.lidar_plot.hideAxis('left')
@@ -472,7 +472,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
     
     def setup_depol(self):
         self.depol_plot = self.plot_layout.addPlot(
-            axisItems={'bottom': self.plot_4_axis, 'left': self.height_axis},
+            axisItems={'bottom': self.plot_4_axis},
             viewBox=pg.ViewBox()
         )
         self.depol_plot.hideAxis('left')
@@ -489,7 +489,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
     
     def setup_angstroem(self):
         self.angstroem_plot = self.plot_layout.addPlot(
-            axisItems={'bottom': self.plot_5_axis, 'left': self.height_axis},
+            axisItems={'bottom': self.plot_5_axis},
             viewBox=pg.ViewBox()
         )
         self.angstroem_plot.hideAxis('left')
