@@ -413,7 +413,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['Backscatter']['mean']
                 try:
-                    self.bsc_plot.plot(profile['data'][~profile['data'].mask], profile['alt'][~profile['data'].mask],
+                    self.bsc_plot.plot(profile['data'][~profile['data'].mask].filled(fill_value=np.NaN), profile['alt'][~profile['data'].mask].filled(fill_value=np.NaN),
                                        pen=self.mes_data.data[dtype]['color'], name=dtype, clear=False)
                 except ValueError:
                     logger.error('Could not plot %s.' % dtype)
@@ -423,7 +423,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['Backscatter']['mean']
                 try:
-                    self.bsc_plot.plot(profile['data'][~profile['data'].mask], profile['alt'][~profile['data'].mask],
+                    self.bsc_plot.plot(profile['data'][~profile['data'].mask].filled(fill_value=np.NaN), profile['alt'][~profile['data'].mask].filled(fill_value=np.NaN),
                                 pen=self.mes_data.data[dtype + 'bsc']['color'], name=dtype, clear=False)
                 except ValueError:
                     logger.error('Could not plot %s.' % dtype)
@@ -447,7 +447,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['Extinction']['mean']
                 try:
-                    self.ext_plot.plot(profile['data'], profile['alt'], pen=self.mes_data.data[dtype]['color'], name=dtype, clear=False)
+                    self.ext_plot.plot(profile['data'].filled(fill_value=np.NaN), profile['alt'].filled(fill_value=np.NaN), pen=self.mes_data.data[dtype]['color'], name=dtype, clear=False)
                 except ValueError:
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
