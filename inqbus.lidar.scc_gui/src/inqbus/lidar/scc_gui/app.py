@@ -10,6 +10,7 @@ from inqbus.lidar.scc_gui import PROJECT_PATH
 from inqbus.lidar.scc_gui.log import logger
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.configs.base_config import resource_path, app_name
+from inqbus.lidar.scc_gui.open_dialog import OpenDialog
 from inqbus.lidar.scc_gui.quicklook import LIDARPlot
 from inqbus.lidar.scc_gui.util import qt2pythonStr
 
@@ -87,27 +88,28 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
     def newQuicklookPlot(self):
         file_path = self.showRawOpenDialog()
-        file_name = os.path.basename(file_path)
-        log_file = os.path.join(mc.LIDAR_LOG_PATH, file_name[:8] + '_temps.txt')
+        if file_path:
+            file_name = os.path.basename(file_path)
+            log_file = os.path.join(mc.LIDAR_LOG_PATH, file_name[:8] + '_temps.txt')
 
-        if not os.path.exists(mc.LIDAR_LOG_PATH):
-            logger.warning("%s can not be found. Check if paths are configured correctly and all directories exist." % mc.LIDAR_LOG_PATH)
-        if not file_path:
-            # Cancel button pressed
-            pass
-        else:
-            measurement = Measurement.from_nc_file(file_path, log_file)
+            if not os.path.exists(mc.LIDAR_LOG_PATH):
+                logger.warning("%s can not be found. Check if paths are configured correctly and all directories exist." % mc.LIDAR_LOG_PATH)
+            if not file_path:
+                # Cancel button pressed
+                pass
+            else:
+                measurement = Measurement.from_nc_file(file_path, log_file)
 
-            MDI_win = QtWidgets.QMdiSubWindow(self)
+                MDI_win = QtWidgets.QMdiSubWindow(self)
 
-            GraphicsView = LIDARPlot(MDI_win)
-            GraphicsView.setup(measurement)
+                GraphicsView = LIDARPlot(MDI_win)
+                GraphicsView.setup(measurement)
 
-            MDI_win.setWidget(GraphicsView)
-            MDI_win.setWindowTitle(GraphicsView.title)
+                MDI_win.setWidget(GraphicsView)
+                MDI_win.setWindowTitle(GraphicsView.title)
 
-            self.mdiArea.addSubWindow(MDI_win)
-            MDI_win.showMaximized()
+                self.mdiArea.addSubWindow(MDI_win)
+                MDI_win.showMaximized()
 
     def getCurrentPath(self):
         sender = self.sender()
@@ -118,28 +120,15 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             filename = QtCore.QDir.currentPath()
         return filename
 
-    def showResultOpenDialog(self):
-        sender = self.sender()
-        filename = self.getCurrentPath()
-        filename = "/data/hdf5/H235/0002"
-
-        file_path = QtWidgets.QFileDialog.getOpenFileName(
-            self,
-            "Open file(s) with optical profiles",
-            QtCore.QDir().filePath(filename),
-            'NC_Files (*.nc *.nc4 *.netcdf);;Zip_files (*.zip)')
-        return qt2pythonStr(file_path)
-
     def showRawOpenDialog(self):
-        sender = self.sender()
-        filename = mc.DATA_PATH
 
-        file_path = QtWidgets.QFileDialog.getOpenFileName(
-            self,
-            "Open raw data file",
-            QtCore.QDir().filePath(filename),
-            'Zip_files (*.zip);;NC_Files (*.nc *.nc4 *.netcdf)')[0]
-        return qt2pythonStr(file_path)
+        file_path = OpenDialog.getFilePath(initial_path=mc.DATA_PATH,
+            filters=[['*.zip'], ['*.nc', '*.nc4', '*.netcdf']],
+            allow_dirs=False,
+            help_text='Select a file. You can choose between *zip, *.nc, *.nc4 and *.netcdf Files. Folder Selection is not possible'
+        )
+
+        return file_path
 
 
 app = QtWidgets.QApplication(sys.argv)
