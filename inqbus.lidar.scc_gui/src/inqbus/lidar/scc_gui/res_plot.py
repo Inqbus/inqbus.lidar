@@ -55,6 +55,8 @@ class ResultData(object):
 
         obj.replace_masked_values()
 
+        obj.set_original_data()
+
         return obj
 
     def read_nc_file(self, file_name):
@@ -313,11 +315,30 @@ class ResultData(object):
 
     def replace_masked_values(self):
         # important to view all plots and lines. Otherwise some lines behave strange on zooming.
-        for dtype in mc.RES_CLEAR_DTYPES:
+        for dtype in mc.RES_CLEAR_DTYPES_DATA:
             if self.data[dtype]['exists']:
                 self.data[dtype]['data'] = self.data[dtype]['data'].filled(fill_value=np.NaN)
                 self.data[dtype]['alt'] = self.data[dtype]['alt'].filled(fill_value=np.NaN)
+        for dtype in mc.RES_CLEAR_DTYPES_BACKSCATTER_MEAN:
+            if self.data[dtype]['exists']:
+                profile = self.data[dtype]['Backscatter']['mean']
+                self.data[dtype]['Backscatter']['mean']['alt'] = profile['alt'][~profile['data'].mask].filled(fill_value=np.NaN)
+                self.data[dtype]['Backscatter']['mean']['data'] = profile['data'][~profile['data'].mask].filled(
+                    fill_value=np.NaN)
+        for dtype in mc.RES_CLEAR_DTYPES_EXTINCTION_MEAN:
+            if self.data[dtype]['exists']:
+                profile = self.data[dtype]['Extinction']['mean']
+                self.data[dtype]['Extinction']['mean']['data'] = profile['data'].filled(fill_value=np.NaN)
+                self.data[dtype]['Extinction']['mean']['alt'] = profile['alt'].filled(fill_value=np.NaN)
+        for dtype in mc.RES_CLEAR_DTYPES_MEAN:
+            if self.data[dtype]['exists']:
+                profile = self.data[dtype]['mean']
+                self.data[dtype]['mean']['data'] = profile['data'].filled(fill_value=np.NaN)
+                self.data[dtype]['mean']['alt'] = profile['alt'].filled(fill_value=np.NaN)
 
+    def set_original_data(self):
+        self.original_data = {}
+        self.original_data.update(self.data)
 
 
 class ResultPlot(pg.GraphicsLayoutWidget):
@@ -412,9 +433,17 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         for dtype in ['b355', 'b532', 'b1064']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['Backscatter']['mean']
+                orig_profile = self.mes_data.original_data[dtype]['Backscatter']['mean']
                 try:
-                    self.bsc_plot.plot(profile['data'][~profile['data'].mask].filled(fill_value=np.NaN), profile['alt'][~profile['data'].mask].filled(fill_value=np.NaN),
-                                       pen=self.mes_data.data[dtype]['color'], name=dtype, clear=False, connect='finite')
+                    self.bsc_plot.plot(orig_profile['data'],
+                                       orig_profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype]['color'], 'width': 1},
+                                       clear=False, connect='finite')
+                    self.bsc_plot.plot(profile['data'],
+                                       profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype]['color'], 'width': 3},
+                                       name=dtype,
+                                       clear=False, connect='finite')
                 except ValueError:
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
@@ -422,9 +451,16 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         for dtype in ['e355', 'e532']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['Backscatter']['mean']
+                orig_profile = self.mes_data.original_data[dtype]['Backscatter']['mean']
                 try:
-                    self.bsc_plot.plot(profile['data'][~profile['data'].mask].filled(fill_value=np.NaN), profile['alt'][~profile['data'].mask].filled(fill_value=np.NaN),
-                                pen=self.mes_data.data[dtype + 'bsc']['color'], name=dtype, clear=False, connect='finite')
+                    self.bsc_plot.plot(orig_profile['data'],
+                                       orig_profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype + 'bsc']['color'], 'width': 1},
+                                       clear=False, connect='finite')
+                    self.bsc_plot.plot(profile['data'],
+                                       profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype + 'bsc']['color'], 'width': 3}, name=dtype,
+                                       clear=False, connect='finite')
                 except ValueError:
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
@@ -446,8 +482,18 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         for dtype in ['e355', 'e532']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['Extinction']['mean']
+                orig_profile = self.mes_data.data[dtype]['Extinction']['mean']
                 try:
-                    self.ext_plot.plot(profile['data'].filled(fill_value=np.NaN), profile['alt'].filled(fill_value=np.NaN), pen=self.mes_data.data[dtype]['color'], name=dtype, clear=False, connect='finite')
+                    self.ext_plot.plot(orig_profile['data'],
+                                       orig_profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype]['color'], 'width': 1},
+                                       clear=False, connect='finite')
+                    self.ext_plot.plot(profile['data'],
+                                       profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype]['color'], 'width': 3},
+                                       name=dtype,
+                                       clear=False, connect='finite')
+
                 except ValueError:
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
@@ -463,9 +509,25 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.lidar_plot.hideAxis('left')
 
         self.lidar_plot.plot(self.mes_data.zero_line_data + 100., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
+
         for dtype in ['lr355', 'lr532']:
             if self.mes_data.data[dtype]['exists']:
-                self.lidar_plot.plot(self.mes_data.data[dtype]['data'], self.mes_data.data[dtype]['alt'], pen=self.mes_data.data[dtype]['color'], name=dtype, connect='finite')
+                profile = self.mes_data.data[dtype]
+                orig_profile = self.mes_data.data[dtype]
+                try:
+                    self.lidar_plot.plot(orig_profile['data'],
+                                       orig_profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype]['color'], 'width': 1},
+                                       clear=False, connect='finite')
+                    self.lidar_plot.plot(profile['data'],
+                                       profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype]['color'], 'width': 3},
+                                       name=dtype,
+                                       clear=False, connect='finite')
+
+                except ValueError:
+                    logger.error('Could not plot %s.' % dtype)
+                    logger.error("Traceback: %s" % tb.format_exc())
                 
         self.lidar_plot.setYLink(self.bsc_plot)
         self.plots.append(self.lidar_plot)
@@ -477,12 +539,23 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         )
         self.depol_plot.hideAxis('left')
 
-        if self.mes_data.data['vldr532']['exists']:
-            self.depol_plot.plot(self.mes_data.data['vldr532']['mean']['data'], self.mes_data.data['vldr532']['mean']['alt'],
-                         pen=self.mes_data.data['vldr532']['color'], name='vldr532', connect='finite')
-        if self.mes_data.data['pldr532']['exists']:
-            self.depol_plot.plot(self.mes_data.data['pldr532']['mean']['data'], self.mes_data.data['pldr532']['mean']['alt'],
-                         pen=self.mes_data.data['pldr532']['color'], name='pldr532' + self.mes_data.scale_str, connect='finite')
+        for dtype in ['vldr532', 'pldr532']:
+            if self.mes_data.data[dtype]['exists']:
+                profile = self.mes_data.data[dtype]['mean']
+                orig_profile = self.mes_data.data[dtype]['mean']
+                try:
+                    self.depol_plot.plot(orig_profile['data'],
+                                       orig_profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype]['color'], 'width': 1},
+                                       clear=False, connect='finite')
+                    self.depol_plot.plot(profile['data'],
+                                       profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype]['color'], 'width': 3},
+                                       name=dtype,
+                                       clear=False, connect='finite')
+                except ValueError:
+                    logger.error('Could not plot %s.' % dtype)
+                    logger.error("Traceback: %s" % tb.format_exc())
 
         self.depol_plot.setYLink(self.bsc_plot)
         self.plots.append(self.depol_plot)
@@ -497,9 +570,24 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.angstroem_plot.plot(self.mes_data.zero_line_data, self.mes_data.zero_line_alt, pen='k', connect='finite')
         self.angstroem_plot.plot(self.mes_data.zero_line_data - 1., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
         self.angstroem_plot.plot(self.mes_data.zero_line_data + 3., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
+
         for dtype in ['aeb_uv_vis', 'aeb_vis_ir', 'ae_ext']:
             if self.mes_data.data[dtype]['exists']:
-                self.angstroem_plot.plot(self.mes_data.data[dtype]['data'], self.mes_data.data[dtype]['alt'], pen=self.mes_data.data[dtype]['color'], name=dtype, connect='finite')
+                profile = self.mes_data.data[dtype]
+                orig_profile = self.mes_data.data[dtype]
+                try:
+                    self.angstroem_plot.plot(orig_profile['data'],
+                                       orig_profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype]['color'], 'width': 1},
+                                       clear=False, connect='finite')
+                    self.angstroem_plot.plot(profile['data'],
+                                       profile['alt'],
+                                       pen={'color': self.mes_data.data[dtype]['color'], 'width': 3},
+                                       name=dtype,
+                                       clear=False, connect='finite')
+                except ValueError:
+                    logger.error('Could not plot %s.' % dtype)
+                    logger.error("Traceback: %s" % tb.format_exc())
 
         self.angstroem_plot.setYLink(self.bsc_plot)
         self.plots.append(self.angstroem_plot)

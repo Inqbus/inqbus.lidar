@@ -39,7 +39,10 @@ RES_DTYPES_FOR_MEAN_PROFILE = ['b355','b532','b1064','e355','e532']
 RES_DTYPES_FOR_LR = ['e355', 'e532']
 
 # add here to clear them of masked values, because pyqtplot behaves different with masked values. Masked values are replaced by NaN.
-RES_CLEAR_DTYPES = ['lr355', 'lr532', 'aeb_uv_vis', 'aeb_vis_ir', 'ae_ext']
+RES_CLEAR_DTYPES_DATA = ['lr355', 'lr532', 'aeb_uv_vis', 'aeb_vis_ir', 'ae_ext']
+RES_CLEAR_DTYPES_BACKSCATTER_MEAN = ['b355', 'b532', 'b1064', 'e355', 'e532']
+RES_CLEAR_DTYPES_EXTINCTION_MEAN = ['e355', 'e532']
+RES_CLEAR_DTYPES_MEAN = ['vldr532', 'pldr532']
 
 RES_MIN_ALT = 0
 
