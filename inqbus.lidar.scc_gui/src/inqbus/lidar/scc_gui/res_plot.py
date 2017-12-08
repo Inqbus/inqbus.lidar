@@ -539,7 +539,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         )
         self.depol_plot.hideAxis('left')
 
-        for dtype in ['vldr532', 'pldr532']:
+        for dtype in ['vldr532', 'pldr532', 'vldr355', 'pldr355']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['mean']
                 orig_profile = self.mes_data.data[dtype]['mean']

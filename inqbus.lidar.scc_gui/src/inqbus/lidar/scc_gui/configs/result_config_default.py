@@ -42,10 +42,68 @@ RES_DTYPES_FOR_LR = ['e355', 'e532']
 RES_CLEAR_DTYPES_DATA = ['lr355', 'lr532', 'aeb_uv_vis', 'aeb_vis_ir', 'ae_ext']
 RES_CLEAR_DTYPES_BACKSCATTER_MEAN = ['b355', 'b532', 'b1064', 'e355', 'e532']
 RES_CLEAR_DTYPES_EXTINCTION_MEAN = ['e355', 'e532']
-RES_CLEAR_DTYPES_MEAN = ['vldr532', 'pldr532']
+RES_CLEAR_DTYPES_MEAN = ['vldr532', 'pldr532', 'vldr355', 'pldr355']
 
 RES_MIN_ALT = 0
 
 LEGEND_LABEL_STYLE = {'color': '#000', 'size': '10pt', 'bold': False, 'italic': False}
 
 RES_SHOW_LEGEND = True
+
+# menu config for setting plots Invalid/Valid
+# orders plot -> menu entry -> related graphs
+# possible plots are: 'bsc_plot', 'ext_plot', 'lidar_plot', 'angstroem_plot', 'depol_plot'
+# related graphs are given as path-tuples e.g. ('b355', 'Backscatter', 'mean') or ('lr255',)
+
+VALIDATION_MENU = {
+    'bsc_plot' : {
+        '355': [('b355', 'Backscatter', 'mean'), ('aeb_uv_vis',), ('pldr355', 'mean'),],
+        '532': [('b532', 'Backscatter', 'mean'), ('aeb_uv_vis',), ('pldr532', 'mean'), ('aeb_vis_ir',)],
+        '1064': [('b1064', 'Backscatter', 'mean'), ('aeb_vis_ir',)],
+        'e355bsc': [('e355', 'Backscatter', 'mean'), ('lr355',)],
+        'e532bsc': [('e532', 'Backscatter', 'mean'), ('lr532',)],
+    },
+    'ext_plot' : {
+        '355': [('e355', 'Extinction', 'mean'), ('lr355',), ('ae_ext',)],
+        '532': [('e532', 'Extinction', 'mean'), ('lr532',), ('ae_ext',)],
+
+    },
+    'lidar_plot': {
+        '355': [('e355', 'Backscatter', 'mean'), ('lr355',)],
+        '532': [('e532', 'Backscatter', 'mean'), ('lr532',)],
+
+    },
+    'angstroem_plot': {
+        'VLDR 355': [('vldr355', 'mean')],
+        'PLDR 355': [('pldr355', 'mean')],
+        'VLDR 532': [('vldr532', 'mean')],
+        'PLDR 532': [('pldr532', 'mean')],
+
+    },
+    'depol_plot': {
+        'bsc 355': [],
+        'bsc 532': [],
+        'bsc 1064': [],
+        'ext 355': [],
+        'ext 532': [],
+    },
+}
+
+# menu config for marking clouds
+DISPLAY_MENU = {
+    'bsc_plot': [
+        ('vldr355', 'mean'),
+        ('pldr355', 'mean'),
+        ('vldr532', 'mean'),
+        ('pldr532', 'mean'),
+        ('b355', 'Backscatter', 'mean'),
+        ('b532', 'Backscatter', 'mean'),
+        ('b1064', 'Backscatter', 'mean'),
+    ],
+    'ext_plot': [
+        ('e355', 'Backscatter', 'mean'),
+        ('e532', 'Backscatter', 'mean'),
+        ('e355', 'Extinction', 'mean'),
+        ('e532', 'Extinction', 'mean'),
+    ]
+}
