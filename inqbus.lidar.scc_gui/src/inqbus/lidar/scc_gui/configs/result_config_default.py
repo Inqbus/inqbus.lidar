@@ -50,6 +50,8 @@ LEGEND_LABEL_STYLE = {'color': '#000', 'size': '10pt', 'bold': False, 'italic': 
 
 RES_SHOW_LEGEND = True
 
+PLOT_NAMES = ['bsc_plot', 'ext_plot', 'lidar_plot', 'angstroem_plot', 'depol_plot']
+
 # menu config for setting plots Invalid/Valid
 # orders plot -> menu entry -> related graphs
 # possible plots are: 'bsc_plot', 'ext_plot', 'lidar_plot', 'angstroem_plot', 'depol_plot'
