@@ -46,18 +46,18 @@ RES_CLEAR_DTYPES_MEAN = ['vldr532', 'pldr532', 'vldr355', 'pldr355']
 
 RES_MIN_ALT = 0
 
-LEGEND_LABEL_STYLE = {'color': '#000', 'size': '10pt', 'bold': False, 'italic': False}
+RES_LEGEND_LABEL_STYLE = {'color': '#000', 'size': '10pt', 'bold': False, 'italic': False}
 
 RES_SHOW_LEGEND = True
 
-PLOT_NAMES = ['bsc_plot', 'ext_plot', 'lidar_plot', 'angstroem_plot', 'depol_plot']
+RES_PLOT_NAMES = ['bsc_plot', 'ext_plot', 'lidar_plot', 'angstroem_plot', 'depol_plot']
 
 # menu config for setting plots Invalid/Valid
 # orders plot -> menu entry -> related graphs
 # possible plots are: 'bsc_plot', 'ext_plot', 'lidar_plot', 'angstroem_plot', 'depol_plot'
 # related graphs are given as path-tuples e.g. ('b355', 'Backscatter', 'mean') or ('lr255',)
 
-VALIDATION_MENU = {
+RES_VALIDATION_MENU = {
     'bsc_plot' : {
         '355': [('b355', 'Backscatter', 'mean'), ('aeb_uv_vis',), ('pldr355', 'mean'),],
         '532': [('b532', 'Backscatter', 'mean'), ('aeb_uv_vis',), ('pldr532', 'mean'), ('aeb_vis_ir',)],
@@ -92,7 +92,7 @@ VALIDATION_MENU = {
 }
 
 # menu config for marking clouds
-DISPLAY_MENU = {
+RES_DISPLAY_MENU = {
     'bsc_plot': [
         ('vldr355', 'mean'),
         ('pldr355', 'mean'),
@@ -109,3 +109,5 @@ DISPLAY_MENU = {
         ('e532', 'Extinction', 'mean'),
     ]
 }
+
+RES_INITIAL_REGION_WIDTH = 1000

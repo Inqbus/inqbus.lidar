@@ -1,5 +1,6 @@
 import os
 import traceback as tb
+import zipfile
 from datetime import datetime
 from math import log
 
@@ -12,8 +13,7 @@ from inqbus.lidar.scc_gui import util
 from inqbus.lidar.scc_gui.axis import HeightAxis, DataAxis
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.log import logger
-import zipfile
-
+from inqbus.lidar.scc_gui.region import MenuLinearRegionItem
 
 
 class ResultData(object):
@@ -341,10 +341,58 @@ class ResultData(object):
         self.original_data.update(self.data)
 
 
+class ResultPlotViewBox(pg.ViewBox):
+
+    def __init__(self, plot_parent, plot_name):
+        self.plot_parent = plot_parent
+        self.plot_name = plot_name
+        self.regions = {}
+        self.data = self.plot_parent.mes_data
+        super(ResultPlotViewBox, self).__init__()
+
+    def mouseDoubleClickEvent(self, event):
+        self.mouse_double_click(event)
+
+    def mouse_double_click(self, ev):
+        ev.accept()
+
+        self.add_region(ev.scenePos())
+
+    def add_region(self, position):
+        """
+        Called from the viewbox  self.contour_plot.vb on click of middle mouse button
+        The position is given as float value [0,1] where 0 is left and
+        :return:
+        """
+        region = self.region_selector(position)
+        self.regions[id(region)] = region
+
+    def region_selector(self, position):
+        curve = getattr(self.plot_parent, self.plot_name)
+        region = pg.LinearRegionItem(
+            values=[0, 1],
+            orientation=pg.LinearRegionItem.Horizontal)
+
+        start = self.mapSceneToView(position).y() - mc.RES_INITIAL_REGION_WIDTH / 2
+        end = start + mc.RES_INITIAL_REGION_WIDTH
+        region.setRegion((start, end))
+        region.setZValue(1000)
+        curve.addItem(region)
+        return region
+
+    def reset_regions(self):
+        for region in self.regions.keys():
+            self.regions[region].deleteLater()
+        self.regions = {}
+
+
+
+
 class ResultPlot(pg.GraphicsLayoutWidget):
 
     def setup(self, data):
         self.plots = []
+        self.regions = {}
         self.mes_data = data
         self.title = util.get_MDI_Win_title(self.mes_data.title)
         self.set_layout()
@@ -354,6 +402,8 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.setBackground('w')
         self.setDataRanges()
         self.setLegends()
+
+
 
     def setDataRanges(self):
         viewbox = self.bsc_plot.vb
@@ -424,7 +474,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
     def setup_bsc_profile(self):
         self.bsc_plot = self.plot_layout.addPlot(
             axisItems={'bottom': self.plot_1_axis, 'left': self.height_axis},
-            viewBox=pg.ViewBox()
+            viewBox=ResultPlotViewBox(self, 'bsc_plot')
         )
         self.bsc_plot.plot(
             self.mes_data.zero_line_data, self.mes_data.zero_line_alt, pen='k', clear = True, connect='finite'
@@ -470,7 +520,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
     def setup_ext_profile(self):
         self.ext_plot = self.plot_layout.addPlot(
             axisItems={'bottom': self.plot_2_axis},
-            viewBox=pg.ViewBox()
+            viewBox=ResultPlotViewBox(self, 'ext_plot')
         )
         self.ext_plot.hideAxis('left')
 
@@ -504,7 +554,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
     def setup_lidar_ratio(self):
         self.lidar_plot = self.plot_layout.addPlot(
             axisItems={'bottom': self.plot_3_axis},
-            viewBox=pg.ViewBox()
+            viewBox=ResultPlotViewBox(self, 'lidar_plot')
         )
         self.lidar_plot.hideAxis('left')
 
@@ -535,7 +585,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
     def setup_depol(self):
         self.depol_plot = self.plot_layout.addPlot(
             axisItems={'bottom': self.plot_4_axis},
-            viewBox=pg.ViewBox()
+            viewBox=ResultPlotViewBox(self, 'depol_plot')
         )
         self.depol_plot.hideAxis('left')
 
@@ -563,7 +613,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
     def setup_angstroem(self):
         self.angstroem_plot = self.plot_layout.addPlot(
             axisItems={'bottom': self.plot_5_axis},
-            viewBox=pg.ViewBox()
+            viewBox=ResultPlotViewBox(self, 'angstroem_plot')
         )
         self.angstroem_plot.hideAxis('left')
 
@@ -625,7 +675,7 @@ class ResultLegendItem(pg.LegendItem):
         title           The title to display for this item. Simple HTML allowed.
         ==============  ========================================================
         """
-        label = pg.LabelItem(name, **mc.LEGEND_LABEL_STYLE)
+        label = pg.LabelItem(name, **mc.RES_LEGEND_LABEL_STYLE)
         if isinstance(item, ItemSample):
             sample = item
         else:
