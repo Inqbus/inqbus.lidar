@@ -1,3 +1,5 @@
+import copy
+import functools
 import os
 import traceback as tb
 import zipfile
@@ -6,6 +8,7 @@ from math import log
 
 import numpy as np
 import pyqtgraph as pg
+from PyQt5.QtWidgets import QAction, QMenu
 from pyqtgraph.graphicsItems.LegendItem import ItemSample
 from scipy.io import netcdf
 
@@ -13,7 +16,6 @@ from inqbus.lidar.scc_gui import util
 from inqbus.lidar.scc_gui.axis import HeightAxis, DataAxis
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.log import logger
-from inqbus.lidar.scc_gui.region import MenuLinearRegionItem
 
 
 class ResultData(object):
@@ -264,8 +266,6 @@ class ResultData(object):
             self.axis_limits['lidar_ratio'] = (plot_min, plot_max)
 
     def get_angstroem_profile(self, target, source1, source2, wl1, wl2):
-        plot_min  = -1.
-        plot_max = 3.
 
         if source1['alt'][0] < source2['alt'][0]:
             f_source = source1 # first profile
@@ -337,8 +337,43 @@ class ResultData(object):
                 self.data[dtype]['mean']['alt'] = profile['alt'].filled(fill_value=np.NaN)
 
     def set_original_data(self):
-        self.original_data = {}
-        self.original_data.update(self.data)
+        self.original_data = copy.deepcopy(self.data)
+
+    def set_invalid(self, min, max, data_path):
+        data_path = list(data_path)
+        data = self.data[data_path.pop(0)]
+
+        if not data['exists']:
+            return
+
+        for element in data_path:
+            data = data[element]
+
+        alt = data['alt']
+        data_array = data['data']
+
+        indexes = np.where((alt > min) & (alt < max))
+
+        data_array[indexes] = np.NaN
+
+    def set_valid(self, min, max, data_path):
+        data_path = list(data_path)
+        first_index = data_path.pop(0)
+        data = self.data[first_index]
+        original_data = self.original_data[first_index]
+
+        if not data['exists']:
+            return
+
+        for element in data_path:
+            data = data[element]
+            original_data = original_data[element]
+
+        alt = data['alt']
+
+        indexes = np.where((alt > min) & (alt < max))
+
+        data['data'][indexes] = original_data['data'][indexes]
 
 
 class ResultPlotViewBox(pg.ViewBox):
@@ -348,7 +383,103 @@ class ResultPlotViewBox(pg.ViewBox):
         self.plot_name = plot_name
         self.regions = {}
         self.data = self.plot_parent.mes_data
+
         super(ResultPlotViewBox, self).__init__()
+
+        self.menu = None
+
+    def set_menu(self):
+        curve = getattr(self.plot_parent, self.plot_name)
+        curve.ctrlMenu = None
+        menu = QMenu()
+
+        menu.clear()
+
+        menu.view = pg.weakref.ref(
+            self)  ## keep weakref to view to avoid circular reference (don't know why, but this prevents the ViewBox from being collected)
+        menu.valid = False  ## tells us whether the ui needs to be updated
+        menu.viewMap = pg.weakref.WeakValueDictionary()  ## weakrefs to all views listed in the link combos
+
+        menu.setTitle("Plot options")
+
+        if self.plot_name in mc.RES_DISPLAY_CLOUD_MENU:
+            set_cloud = QAction("Mark as cloud", self)
+            set_cloud.triggered.connect(self.mark_cloud)
+            menu.addAction(set_cloud)
+            remove_cloud = QAction("Unmark as cloud", self)
+            remove_cloud.triggered.connect(self.unmark_cloud)
+            menu.addAction(remove_cloud)
+
+        if self.plot_name in mc.RES_VALIDATION_MENU:
+            invalid = menu.addMenu("Set as Invalid")
+            valid = menu.addMenu("Set as valid")
+            names = mc.RES_VALIDATION_MENU[self.plot_name].keys()
+            for name in names:
+                add_valid = QAction(name, self)
+                add_valid.triggered.connect(functools.partial(self.set_valid, name))
+                valid.addAction(add_valid)
+                add_invalid = QAction(name, self)
+                add_invalid.triggered.connect(functools.partial(self.set_invalid, name))
+                invalid.addAction(add_invalid)
+
+            add_valid = QAction("All", self)
+            add_valid.triggered.connect(functools.partial(self.set_valid, "All"))
+            valid.addAction(add_valid)
+            add_invalid = QAction("All", self)
+            add_invalid.triggered.connect(functools.partial(self.set_invalid, "All"))
+            invalid.addAction(add_invalid)
+
+        store_as_netcdf = QAction("Export as Netcdf", self)
+        store_as_netcdf.triggered.connect(self.export_data)
+        menu.addAction(store_as_netcdf)
+
+        return menu
+
+    def set_valid(self, name):
+        self.change_data(self.data.set_valid, name)
+
+    def change_data(self, handler, name):
+        if not self.regions:
+            return
+
+        if name == "All":
+            curves = self.get_all_curves()
+        else:
+            curves = mc.RES_VALIDATION_MENU[self.plot_name][name]
+
+        for region in self.regions.values():
+            min, max = region.getRegion()
+            for curve in curves:
+                handler(min, max, curve)
+
+        self.reset_regions()
+        self.redraw_plots()
+
+    def set_invalid(self, name):
+
+        self.change_data(self.data.set_invalid, name)
+
+    def get_all_curves(self):
+        curves = []
+        for x in mc.RES_VALIDATION_MENU[self.plot_name].values():
+            curves += x
+
+        return list(set(curves))
+
+    def export_data(self):
+        print("Export data")
+
+    def mark_cloud(self):
+        print("Mark Cloud")
+
+    def unmark_cloud(self):
+        print("Unmark Cloud")
+
+    def mouseClickEvent(self, ev):
+        if not self.menu:
+            self.menu = self.set_menu()
+        if ev.button() == pg.QtCore.Qt.RightButton and self.menuEnabled():
+            super(ResultPlotViewBox, self).mouseClickEvent(ev)
 
     def mouseDoubleClickEvent(self, event):
         self.mouse_double_click(event)
@@ -385,6 +516,8 @@ class ResultPlotViewBox(pg.ViewBox):
             self.regions[region].deleteLater()
         self.regions = {}
 
+    def redraw_plots(self):
+        self.plot_parent.redraw_plots()
 
 
 
@@ -392,6 +525,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
     def setup(self, data):
         self.plots = []
+        self.legends = []
         self.regions = {}
         self.mes_data = data
         self.title = util.get_MDI_Win_title(self.mes_data.title)
@@ -401,8 +535,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.resize(mc.PLOT_WINDOW_SIZE[0]-30, mc.PLOT_WINDOW_SIZE[1]-30)
         self.setBackground('w')
         self.setDataRanges()
-        self.setLegends()
-
+        self.set_legends()
 
 
     def setDataRanges(self):
@@ -476,6 +609,11 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             axisItems={'bottom': self.plot_1_axis, 'left': self.height_axis},
             viewBox=ResultPlotViewBox(self, 'bsc_plot')
         )
+        self.update_bsc_profile()
+        self.plots.append(self.bsc_plot)
+
+    def update_bsc_profile(self):
+        self.bsc_plot.clear()
         self.bsc_plot.plot(
             self.mes_data.zero_line_data, self.mes_data.zero_line_alt, pen='k', clear = True, connect='finite'
         )
@@ -514,7 +652,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                 except ValueError:
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
-        self.plots.append(self.bsc_plot)
+
 
 
     def setup_ext_profile(self):
@@ -523,8 +661,12 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             viewBox=ResultPlotViewBox(self, 'ext_plot')
         )
         self.ext_plot.hideAxis('left')
+        self.update_ext_profile()
+        self.ext_plot.setYLink(self.bsc_plot)
+        self.plots.append(self.ext_plot)
 
-
+    def update_ext_profile(self):
+        self.ext_plot.clear()
         self.ext_plot.plot(
             self.mes_data.zero_line_data, self.mes_data.zero_line_alt, pen='k', clear = True
         )
@@ -532,7 +674,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         for dtype in ['e355', 'e532']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['Extinction']['mean']
-                orig_profile = self.mes_data.data[dtype]['Extinction']['mean']
+                orig_profile = self.mes_data.original_data[dtype]['Extinction']['mean']
                 try:
                     self.ext_plot.plot(orig_profile['data'],
                                        orig_profile['alt'],
@@ -548,8 +690,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
-        self.ext_plot.setYLink(self.bsc_plot)
-        self.plots.append(self.ext_plot)
+
 
     def setup_lidar_ratio(self):
         self.lidar_plot = self.plot_layout.addPlot(
@@ -557,13 +698,18 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             viewBox=ResultPlotViewBox(self, 'lidar_plot')
         )
         self.lidar_plot.hideAxis('left')
+        self.update_lidar_ratio()
+        self.lidar_plot.setYLink(self.bsc_plot)
+        self.plots.append(self.lidar_plot)
 
+    def update_lidar_ratio(self):
+        self.lidar_plot.clear()
         self.lidar_plot.plot(self.mes_data.zero_line_data + 100., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
 
         for dtype in ['lr355', 'lr532']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]
-                orig_profile = self.mes_data.data[dtype]
+                orig_profile = self.mes_data.original_data[dtype]
                 try:
                     self.lidar_plot.plot(orig_profile['data'],
                                        orig_profile['alt'],
@@ -579,8 +725,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
                 
-        self.lidar_plot.setYLink(self.bsc_plot)
-        self.plots.append(self.lidar_plot)
+
     
     def setup_depol(self):
         self.depol_plot = self.plot_layout.addPlot(
@@ -588,11 +733,17 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             viewBox=ResultPlotViewBox(self, 'depol_plot')
         )
         self.depol_plot.hideAxis('left')
+        self.update_depol()
+        self.depol_plot.setYLink(self.bsc_plot)
+        self.plots.append(self.depol_plot)
+
+    def update_depol(self):
+        self.depol_plot.clear()
 
         for dtype in ['vldr532', 'pldr532', 'vldr355', 'pldr355']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['mean']
-                orig_profile = self.mes_data.data[dtype]['mean']
+                orig_profile = self.mes_data.original_data[dtype]['mean']
                 try:
                     self.depol_plot.plot(orig_profile['data'],
                                        orig_profile['alt'],
@@ -607,8 +758,6 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
-        self.depol_plot.setYLink(self.bsc_plot)
-        self.plots.append(self.depol_plot)
     
     def setup_angstroem(self):
         self.angstroem_plot = self.plot_layout.addPlot(
@@ -616,6 +765,12 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             viewBox=ResultPlotViewBox(self, 'angstroem_plot')
         )
         self.angstroem_plot.hideAxis('left')
+        self.update_angetroem()
+        self.angstroem_plot.setYLink(self.bsc_plot)
+        self.plots.append(self.angstroem_plot)
+
+    def update_angetroem(self):
+        self.angstroem_plot.clear()
 
         self.angstroem_plot.plot(self.mes_data.zero_line_data, self.mes_data.zero_line_alt, pen='k', connect='finite')
         self.angstroem_plot.plot(self.mes_data.zero_line_data - 1., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
@@ -624,7 +779,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         for dtype in ['aeb_uv_vis', 'aeb_vis_ir', 'ae_ext']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]
-                orig_profile = self.mes_data.data[dtype]
+                orig_profile = self.mes_data.original_data[dtype]
                 try:
                     self.angstroem_plot.plot(orig_profile['data'],
                                        orig_profile['alt'],
@@ -639,10 +794,10 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
-        self.angstroem_plot.setYLink(self.bsc_plot)
-        self.plots.append(self.angstroem_plot)
 
-    def setLegends(self):
+
+
+    def set_legends(self):
         if mc.RES_SHOW_LEGEND:
             for plot in self.plots:
                 legend = ResultLegendItem()
@@ -651,11 +806,22 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     if item.name():
                         legend.addItem(item, item.name())
 
+                plot.legend = legend
 
-                plot.addLegend()
+    def redraw_plots(self):
+        self.update_depol()
+        self.update_angetroem()
+        self.update_lidar_ratio()
+        self.update_ext_profile()
+        self.update_bsc_profile()
+
 
 
 class ResultLegendItem(pg.LegendItem):
+
+    def __init__(self):
+        super(ResultLegendItem, self).__init__()
+        self.labels = []
 
     def paint(self, p, *args):
         p.setPen(pg.fn.mkPen(255, 255, 255, 100))
@@ -675,6 +841,8 @@ class ResultLegendItem(pg.LegendItem):
         title           The title to display for this item. Simple HTML allowed.
         ==============  ========================================================
         """
+        if name in self.labels:
+            return
         label = pg.LabelItem(name, **mc.RES_LEGEND_LABEL_STYLE)
         if isinstance(item, ItemSample):
             sample = item
@@ -685,4 +853,5 @@ class ResultLegendItem(pg.LegendItem):
         self.layout.addItem(sample, row, 0)
         self.layout.addItem(label, row, 1)
         self.updateSize()
+        self.labels.append(name)
 

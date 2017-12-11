@@ -75,14 +75,14 @@ RES_VALIDATION_MENU = {
         '532': [('e532', 'Backscatter', 'mean'), ('lr532',)],
 
     },
-    'angstroem_plot': {
+    'depol_plot': {
         'VLDR 355': [('vldr355', 'mean')],
         'PLDR 355': [('pldr355', 'mean')],
         'VLDR 532': [('vldr532', 'mean')],
         'PLDR 532': [('pldr532', 'mean')],
 
     },
-    'depol_plot': {
+    'angstroem_plot': {
         'bsc 355': [],
         'bsc 532': [],
         'bsc 1064': [],
@@ -92,7 +92,7 @@ RES_VALIDATION_MENU = {
 }
 
 # menu config for marking clouds
-RES_DISPLAY_MENU = {
+RES_DISPLAY_CLOUD_MENU = {
     'bsc_plot': [
         ('vldr355', 'mean'),
         ('pldr355', 'mean'),
