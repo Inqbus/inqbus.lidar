@@ -38,6 +38,7 @@ class ResultData(object):
         obj.axis_limits.update(mc.RES_AXES_LIMITS)
         meas_id = os.path.split(filepath)[-1]
         obj.meas_id = meas_id
+        obj.filepath = filepath
 
 
         for filename in os.listdir(filepath):
@@ -88,11 +89,13 @@ class ResultData(object):
                 if va in ['Backscatter', 'Extinction']:
                     vdata = np.ma.masked_array(f.variables[v].data / 1.0E-6, f.variables[v].data > 1E30,
                                                fill_value=np.nan)
+                    cloud_data = np.ma.masked_array(f.variables['__CloudFlag'].data, f.variables['__CloudFlag'].data == -127)
                 else:
                     vdata = np.ma.masked_array(f.variables[v].data * 100., f.variables[v].data > 1E30,
                                                fill_value=np.nan)
+                    cloud_data = np.ma.masked_array(f.variables['__CloudFlag'].data, f.variables['__CloudFlag'].data == -127)
 
-                self.data[dtype][va]['single'].append({'alt': alt, 'data': vdata})
+                self.data[dtype][va]['single'].append({'alt': alt, 'data': vdata, 'cloud': cloud_data*1.0})
 
         f.close()
 
@@ -106,7 +109,8 @@ class ResultData(object):
                     single_profiles = self.data[dtype][varname]['single']
                     if len(single_profiles) == 1:
                         self.data[dtype][varname]['mean'] = {'alt': single_profiles[0]['alt'],
-                                                        'data': single_profiles[0]['data']}
+                                                             'data': single_profiles[0]['data'],
+                                                             'cloud': single_profiles[0]['cloud']}
                     else:
                         min_start = 15000
                         min_start_idx = np.nan
@@ -119,6 +123,7 @@ class ResultData(object):
 
                         data_arr = []
                         alt_arr = []
+                        cloud_arr = []
                         for p in range(len(single_profiles)):
 
                             idx_shift = int(
@@ -127,11 +132,13 @@ class ResultData(object):
                             d = np.ma.append(fill_array, single_profiles[p][
                                 'data'])  # insert nans in the beginning of profile until beginning of its altitude axis fits to the one of max_start_idx
                             a = np.ma.append(fill_array, single_profiles[p]['alt'])
+                            c = np.ma.append(fill_array, single_profiles[p]['cloud'])
 
                             fill_length = max_len - len(d)  # len(single_profiles[p]['data'])
                             if fill_length < 0:
                                 dd = d[:fill_length]
                                 aa = a[:fill_length]
+                                cc = c[:fill_length]
                             else:
                                 fill_array = np.ma.masked_array(np.ones(fill_length) * np.nan, mask=True,
                                                                 fill_value=np.nan)
@@ -139,14 +146,19 @@ class ResultData(object):
                                                   fill_array)  # fill the end of profile with nans until its length is equal max_len
                                 aa = np.ma.append(a, fill_array)
 
+                                cc = np.ma.append(c, fill_array)
+
                             dd.fill_value = np.nan
                             aa.fill_value = np.nan
+                            cc.fill_value = np.nan
 
                             data_arr.append(dd)
                             alt_arr.append(aa)
+                            cloud_arr.append(cc)
 
                         self.data[dtype][varname]['mean'] = {'data': np.ma.mean(data_arr, axis=0),
-                                                        'alt': np.ma.max(alt_arr, axis=0)}
+                                                             'alt': np.ma.max(alt_arr, axis=0),
+                                                             'cloud': np.ma.max(cloud_arr, axis=0)}
 
                     plot_max = np.ma.max(self.data[dtype][varname]['mean']['data'])
                     plot_min = np.ma.min(self.data[dtype][varname]['mean']['data'])
@@ -199,6 +211,7 @@ class ResultData(object):
                 self.data['pldr532']['mean'] = {}
                 self.data['pldr532']['mean']['data'] = self.data['b532']['ParticleDepol']['mean']['data'] / depol_scale
                 self.data['pldr532']['mean']['alt'] = self.data['b532']['ParticleDepol']['mean']['alt']
+                self.data['pldr532']['mean']['cloud'] = self.data['b532']['ParticleDepol']['mean']['cloud']
                 self.data['pldr532']['exists'] = True
 
             if self.pldr355_90:
@@ -217,6 +230,7 @@ class ResultData(object):
                 self.data['pldr355']['mean'] = {}
                 self.data['pldr355']['mean']['data'] = self.data['b355']['ParticleDepol']['mean']['data'] / depol_scale
                 self.data['pldr355']['mean']['alt'] = self.data['b355']['ParticleDepol']['mean']['alt']
+                self.data['pldr532']['mean']['cloud'] = self.data['b355']['ParticleDepol']['mean']['cloud']
                 self.data['pldr355']['exists'] = True
 
             if self.pldr532_90 and self.pldr355_90:
@@ -244,7 +258,6 @@ class ResultData(object):
         if self.data['e532']['exists'] and self.data['e355']['exists']:
             self.get_angstroem_profile(self.data['ae_ext'], self.data['e532']['Extinction']['mean'],
                                  self.data['e355']['Extinction']['mean'], 532., 355.)
-
 
     def get_lr(self, dtype):
         plot_min = -20.
@@ -319,22 +332,33 @@ class ResultData(object):
             if self.data[dtype]['exists']:
                 self.data[dtype]['data'] = self.data[dtype]['data'].filled(fill_value=np.NaN)
                 self.data[dtype]['alt'] = self.data[dtype]['alt'].filled(fill_value=np.NaN)
+                if 'cloud' in self.data[dtype]:
+                    self.data[dtype]['cloud'] = self.data[dtype]['cloud'].filled(fill_value=np.NaN)
         for dtype in mc.RES_CLEAR_DTYPES_BACKSCATTER_MEAN:
             if self.data[dtype]['exists']:
                 profile = self.data[dtype]['Backscatter']['mean']
                 self.data[dtype]['Backscatter']['mean']['alt'] = profile['alt'][~profile['data'].mask].filled(fill_value=np.NaN)
                 self.data[dtype]['Backscatter']['mean']['data'] = profile['data'][~profile['data'].mask].filled(
                     fill_value=np.NaN)
+                if 'cloud' in profile:
+                    self.data[dtype]['Backscatter']['mean']['cloud'] = profile['cloud'].filled(
+                        fill_value=np.NaN)
         for dtype in mc.RES_CLEAR_DTYPES_EXTINCTION_MEAN:
             if self.data[dtype]['exists']:
                 profile = self.data[dtype]['Extinction']['mean']
                 self.data[dtype]['Extinction']['mean']['data'] = profile['data'].filled(fill_value=np.NaN)
                 self.data[dtype]['Extinction']['mean']['alt'] = profile['alt'].filled(fill_value=np.NaN)
+                if 'cloud' in profile:
+                    self.data[dtype]['Extinction']['mean']['cloud'] = profile['cloud'].filled(
+                        fill_value=np.NaN)
         for dtype in mc.RES_CLEAR_DTYPES_MEAN:
             if self.data[dtype]['exists']:
                 profile = self.data[dtype]['mean']
                 self.data[dtype]['mean']['data'] = profile['data'].filled(fill_value=np.NaN)
                 self.data[dtype]['mean']['alt'] = profile['alt'].filled(fill_value=np.NaN)
+                if 'cloud' in profile:
+                    self.data[dtype]['mean']['cloud'] = profile['cloud'].filled(
+                        fill_value=np.NaN)
 
     def set_original_data(self):
         self.original_data = copy.deepcopy(self.data)
@@ -374,6 +398,53 @@ class ResultData(object):
         indexes = np.where((alt > min) & (alt < max))
 
         data['data'][indexes] = original_data['data'][indexes]
+
+    def set_cloud(self, min, max, orig_data_path):
+        data_path = list(orig_data_path)
+        first_index = data_path.pop(0)
+        data = self.data[first_index]
+
+        if not data['exists']:
+            return
+
+        for element in data_path:
+            data = data[element]
+
+        alt = data['alt']
+
+        if 'cloud' not in data:
+            data['cloud'] = np.full(alt.shape, 1, dtype=float)
+
+        indexes = np.where((alt > min) & (alt < max))
+
+        data['cloud'][indexes] = 2
+
+    def remove_cloud(self, min, max, orig_data_path):
+        data_path = list(orig_data_path)
+        first_index = data_path.pop(0)
+        data = self.data[first_index]
+
+        if not data['exists']:
+            return
+
+        for element in data_path:
+            data = data[element]
+
+        alt = data['alt']
+
+        if 'cloud' not in data:
+            data['cloud'] = np.full(alt.shape, 1, dtype=float)
+            return
+
+        indexes = np.where((alt > min) & (alt < max))
+
+        data['cloud'][indexes] = 1
+
+    def export(self):
+
+        export_dir = os.path.join(mc.RESULT_EXPORT_PATH, self.meas_id)
+        if not os.path.exists(export_dir):
+            os.makedirs(export_dir)
 
 
 class ResultPlotViewBox(pg.ViewBox):
@@ -467,13 +538,25 @@ class ResultPlotViewBox(pg.ViewBox):
         return list(set(curves))
 
     def export_data(self):
-        print("Export data")
+        self.data.export()
 
     def mark_cloud(self):
-        print("Mark Cloud")
+        handler = self.data.set_cloud
+        self.change_cloud(handler)
 
     def unmark_cloud(self):
-        print("Unmark Cloud")
+        handler = self.data.remove_cloud
+        self.change_cloud(handler)
+
+    def change_cloud(self, handler):
+        curves = mc.RES_DISPLAY_CLOUD_MENU[self.plot_name]
+
+        for region in self.regions.values():
+            min, max = region.getRegion()
+            for curve in curves:
+                handler(min, max, curve)
+        self.reset_regions()
+        self.redraw_plots()
 
     def mouseClickEvent(self, ev):
         if not self.menu:
@@ -527,6 +610,13 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.plots = []
         self.legends = []
         self.regions = {}
+        self.plots_limits = {
+            'bsc_plot' : 'Backscatter',
+            'ext_plot': 'Extinction',
+            'lidar_plot': 'lidar_ratio',
+            'angstroem_plot': 'angstroem',
+            'depol_plot': 'Depol',
+        }
         self.mes_data = data
         self.title = util.get_MDI_Win_title(self.mes_data.title)
         self.set_layout()
@@ -547,17 +637,12 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             min_heigth,
             max_heigth)
 
-        plots_limits = {
-            self.bsc_plot : 'Backscatter',
-            self.ext_plot: 'Extinction',
-            self.lidar_plot: 'lidar_ratio',
-            self.angstroem_plot: 'angstroem',
-            self.depol_plot: 'Depol',
-        }
 
-        for plot in plots_limits.keys():
-            viewbox = plot.vb
-            min, max = self.mes_data.axis_limits[plots_limits[plot]]
+
+        for plot in self.plots_limits.keys():
+            plot_obj = getattr(self, plot)
+            viewbox = plot_obj.vb
+            min, max = self.mes_data.axis_limits[self.plots_limits[plot]]
             viewbox.enableAutoRange(viewbox.XAxis, False)
             viewbox.setXRange(
                 min,
@@ -618,6 +703,8 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             self.mes_data.zero_line_data, self.mes_data.zero_line_alt, pen='k', clear = True, connect='finite'
         )
 
+        cloud = None
+
         for dtype in ['b355', 'b532', 'b1064']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['Backscatter']['mean']
@@ -636,6 +723,9 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
+                if cloud is None and 'cloud' in profile:
+                    cloud = profile
+
         for dtype in ['e355', 'e532']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['Backscatter']['mean']
@@ -653,7 +743,10 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
-
+                if cloud is None and 'cloud' in profile:
+                    cloud = profile
+        if cloud is not None:
+            self.add_cloud_to_plot(cloud, self.bsc_plot, 'bsc_plot')
 
     def setup_ext_profile(self):
         self.ext_plot = self.plot_layout.addPlot(
@@ -670,6 +763,8 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.ext_plot.plot(
             self.mes_data.zero_line_data, self.mes_data.zero_line_alt, pen='k', clear = True
         )
+
+        cloud = None
 
         for dtype in ['e355', 'e532']:
             if self.mes_data.data[dtype]['exists']:
@@ -690,7 +785,11 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
+                if cloud is None and 'cloud' in profile:
+                    cloud = profile
 
+        if cloud is not None:
+            self.add_cloud_to_plot(cloud, self.ext_plot, 'ext_plot')
 
     def setup_lidar_ratio(self):
         self.lidar_plot = self.plot_layout.addPlot(
@@ -705,6 +804,8 @@ class ResultPlot(pg.GraphicsLayoutWidget):
     def update_lidar_ratio(self):
         self.lidar_plot.clear()
         self.lidar_plot.plot(self.mes_data.zero_line_data + 100., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
+
+        cloud = None
 
         for dtype in ['lr355', 'lr532']:
             if self.mes_data.data[dtype]['exists']:
@@ -724,7 +825,12 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                 except ValueError:
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
-                
+
+                if cloud is None and 'cloud' in profile:
+                    cloud = profile
+
+        if cloud is not None:
+            self.add_cloud_to_plot(cloud, self.lidar_plot, 'lidar_plot')
 
     
     def setup_depol(self):
@@ -739,6 +845,8 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
     def update_depol(self):
         self.depol_plot.clear()
+
+        cloud = None
 
         for dtype in ['vldr532', 'pldr532', 'vldr355', 'pldr355']:
             if self.mes_data.data[dtype]['exists']:
@@ -758,6 +866,12 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
+                if cloud is None and 'cloud' in profile:
+                    cloud = profile
+
+        if cloud is not None:
+            self.add_cloud_to_plot(cloud, self.depol_plot, 'depol_plot')
+
     
     def setup_angstroem(self):
         self.angstroem_plot = self.plot_layout.addPlot(
@@ -771,6 +885,8 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
     def update_angetroem(self):
         self.angstroem_plot.clear()
+
+        cloud = None
 
         self.angstroem_plot.plot(self.mes_data.zero_line_data, self.mes_data.zero_line_alt, pen='k', connect='finite')
         self.angstroem_plot.plot(self.mes_data.zero_line_data - 1., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
@@ -794,6 +910,12 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
+                    if cloud is None and 'cloud' in profile:
+                        cloud = profile
+
+        if cloud is not None:
+            self.add_cloud_to_plot(cloud, self.angstroem_plot, 'angstroem_plot')
+
 
 
 
@@ -814,6 +936,19 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.update_lidar_ratio()
         self.update_ext_profile()
         self.update_bsc_profile()
+
+    def add_cloud_to_plot(self, cloud_data, plot, plot_name):
+        min, max = self.mes_data.axis_limits[self.plots_limits[plot_name]]
+
+        cloud = np.ma.masked_array(cloud_data['cloud'], cloud_data['cloud'] != 2)
+        cloud = cloud.filled(fill_value=np.NaN)
+        cloud = cloud * min / 2
+
+        plot.plot(cloud,
+                cloud_data['alt'],
+                pen={'hsv': mc.RES_CLOUD_LINE_COLOR, 'width': 6, },
+                   name='cloud',
+                   clear=False, connect='finite')
 
 
 

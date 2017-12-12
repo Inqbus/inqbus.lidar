@@ -111,3 +111,6 @@ RES_DISPLAY_CLOUD_MENU = {
 }
 
 RES_INITIAL_REGION_WIDTH = 1000
+
+# hsv color to make it transperant
+RES_CLOUD_LINE_COLOR = (0, 0, 0.5, 0.5)
