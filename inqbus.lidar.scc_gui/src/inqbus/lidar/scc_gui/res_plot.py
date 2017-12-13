@@ -5,6 +5,7 @@ import traceback as tb
 import zipfile
 from datetime import datetime
 from math import log
+from collections import OrderedDict
 
 import numpy as np
 import pyqtgraph as pg
@@ -16,6 +17,89 @@ from inqbus.lidar.scc_gui import util
 from inqbus.lidar.scc_gui.axis import HeightAxis, DataAxis
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.log import logger
+
+
+class DataExport(object):
+
+    def __init__(self, data):
+        self.data = data
+        self.export_dir = os.path.join(mc.RESULT_EXPORT_PATH, self.data.meas_id)
+        if not os.path.exists(self.export_dir):
+            os.makedirs(self.export_dir)
+
+        self.export_all()
+
+    def export_all(self):
+        for dtype in mc.RES_VAR_NAMES.keys():
+            self.export_dtype(dtype)
+
+    def export_dtype(self, dtype):
+        if self.data.data[dtype]['exists']:
+            filename = self.data.meas_id + '.' + dtype
+        else:
+            return
+
+        file = self.create_file(filename)
+        self.write_header(file, dtype)
+        logger.info("Finished Header %s" % dtype)
+        file.flush()
+        self.write_variables(file, dtype)
+        file.flush()
+        logger.info("Finished data %s" % dtype)
+        file.close()
+
+    def create_file(self, filename):
+        outfile = netcdf.netcdf_file(
+            os.path.join(
+                self.export_dir,
+                filename),
+            'w',
+            False,
+            1)
+        return outfile
+
+    def write_header(self, file, dtype):
+        data = self.data.data
+        for attr in data[dtype]['attributes']:
+            attr_value = data[dtype]['attributes'][attr]
+            if isinstance(attr_value, OrderedDict):
+                continue
+            setattr(file, attr, data[dtype]['attributes'][attr])
+            file.flush()
+
+
+        file.Comments = data['Comments']
+        file.StartDate = int(data['start_time'].strftime(
+            '%Y%m%d'))
+        file.StartTime_UT = int(data['start_time'].strftime(
+            '%H%M%S'))
+        file.StopTime_UT = int(data['end_time'].strftime(
+            '%H%M%S'))
+
+    def write_variables(self, file, dtype):
+        data = self.data.data[dtype]
+        export_data = {}
+
+        for col in mc.RES_VAR_NAMES[dtype]:
+            if col in data:
+                if 'mean' in data[col]:
+                    export_data['Altitude'] = data[col]['mean']['alt']
+                    export_data[col] = data[col]['mean']['data']
+                    if 'cloud' in data[col]['mean']:
+                        export_data['__CloudFlag'] = data[col]['mean']['cloud']
+                else:
+                    logger.info('No mean found for col %s in dtype %s' % (col, dtype))
+            else:
+                logger.info('No %s data found for %s' % (col, dtype))
+
+        for col in export_data.keys():
+            data = export_data[col]
+
+            col_dim = file.createDimension(col, data.size)
+
+            var = file.createVariable(col, data.dtype.type, (col,))
+
+            var[:] = data
 
 
 class ResultData(object):
@@ -33,7 +117,7 @@ class ResultData(object):
     def from_directory(cls, filepath):
         obj = cls()
         obj.data = {}
-        obj.data.update(mc.RES_DATA_SETTINGS)
+        obj.data = copy.deepcopy(mc.RES_DATA_SETTINGS)
         obj.axis_limits = {}
         obj.axis_limits.update(mc.RES_AXES_LIMITS)
         meas_id = os.path.split(filepath)[-1]
@@ -63,18 +147,27 @@ class ResultData(object):
         return obj
 
     def read_nc_file(self, file_name):
-        f = netcdf.netcdf_file(file_name, 'r', False, 1)
+        try:
+            f = netcdf.netcdf_file(file_name, 'r', False, 1)
+        except TypeError:
+            logger.error('%s is no valid file.' % file_name)
+            return
+        except IsADirectoryError:
+            logger.error('%s is no valid file.' % file_name)
+            return
 
         file_start = datetime.strptime(str(f.StartDate) + str(f.StartTime_UT).zfill(6), '%Y%m%d%H%M%S')
         file_end = datetime.strptime(str(f.StartDate) + str(f.StopTime_UT).zfill(6), '%Y%m%d%H%M%S')
         self.data['start_time'] = min(self.data['start_time'], file_start)
         self.data['end_time'] = max(self.data['end_time'], file_end)
+        self.data['Comments'] = str(f.Comments)
 
         alt = np.ma.masked_array(f.variables['Altitude'].data, f.variables['Altitude'].data > 1E30,
                                  fill_value=np.nan) - f.Altitude_meter_asl
         self.data['max_alt'] = max(self.data['max_alt'], max(alt))
         dtype = file_name.split('.')[-1]
         self.data[dtype]['exists'] = True
+        self.data[dtype]['attributes'] = f._attributes
 
         for v in mc.RES_VAR_NAMES[dtype]:
             if v in f.variables.keys():
@@ -95,7 +188,7 @@ class ResultData(object):
                                                fill_value=np.nan)
                     cloud_data = np.ma.masked_array(f.variables['__CloudFlag'].data, f.variables['__CloudFlag'].data == -127)
 
-                self.data[dtype][va]['single'].append({'alt': alt, 'data': vdata, 'cloud': cloud_data*1.0})
+                self.data[dtype][va]['single'].append({'alt': alt, 'data': vdata, 'cloud': cloud_data})
 
         f.close()
 
@@ -333,7 +426,7 @@ class ResultData(object):
                 self.data[dtype]['data'] = self.data[dtype]['data'].filled(fill_value=np.NaN)
                 self.data[dtype]['alt'] = self.data[dtype]['alt'].filled(fill_value=np.NaN)
                 if 'cloud' in self.data[dtype]:
-                    self.data[dtype]['cloud'] = self.data[dtype]['cloud'].filled(fill_value=np.NaN)
+                    self.data[dtype]['cloud'] = self.data[dtype]['cloud'].filled(fill_value=-127)
         for dtype in mc.RES_CLEAR_DTYPES_BACKSCATTER_MEAN:
             if self.data[dtype]['exists']:
                 profile = self.data[dtype]['Backscatter']['mean']
@@ -342,7 +435,7 @@ class ResultData(object):
                     fill_value=np.NaN)
                 if 'cloud' in profile:
                     self.data[dtype]['Backscatter']['mean']['cloud'] = profile['cloud'].filled(
-                        fill_value=np.NaN)
+                        fill_value=-127)
         for dtype in mc.RES_CLEAR_DTYPES_EXTINCTION_MEAN:
             if self.data[dtype]['exists']:
                 profile = self.data[dtype]['Extinction']['mean']
@@ -350,7 +443,7 @@ class ResultData(object):
                 self.data[dtype]['Extinction']['mean']['alt'] = profile['alt'].filled(fill_value=np.NaN)
                 if 'cloud' in profile:
                     self.data[dtype]['Extinction']['mean']['cloud'] = profile['cloud'].filled(
-                        fill_value=np.NaN)
+                        fill_value=-127)
         for dtype in mc.RES_CLEAR_DTYPES_MEAN:
             if self.data[dtype]['exists']:
                 profile = self.data[dtype]['mean']
@@ -358,7 +451,7 @@ class ResultData(object):
                 self.data[dtype]['mean']['alt'] = profile['alt'].filled(fill_value=np.NaN)
                 if 'cloud' in profile:
                     self.data[dtype]['mean']['cloud'] = profile['cloud'].filled(
-                        fill_value=np.NaN)
+                        fill_value=-127)
 
     def set_original_data(self):
         self.original_data = copy.deepcopy(self.data)
@@ -442,9 +535,7 @@ class ResultData(object):
 
     def export(self):
 
-        export_dir = os.path.join(mc.RESULT_EXPORT_PATH, self.meas_id)
-        if not os.path.exists(export_dir):
-            os.makedirs(export_dir)
+        DataExport(self)
 
 
 class ResultPlotViewBox(pg.ViewBox):
@@ -916,9 +1007,6 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         if cloud is not None:
             self.add_cloud_to_plot(cloud, self.angstroem_plot, 'angstroem_plot')
 
-
-
-
     def set_legends(self):
         if mc.RES_SHOW_LEGEND:
             for plot in self.plots:
@@ -940,7 +1028,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
     def add_cloud_to_plot(self, cloud_data, plot, plot_name):
         min, max = self.mes_data.axis_limits[self.plots_limits[plot_name]]
 
-        cloud = np.ma.masked_array(cloud_data['cloud'], cloud_data['cloud'] != 2)
+        cloud = np.ma.masked_array(cloud_data['cloud'] * 1.0, cloud_data['cloud'] != 2)
         cloud = cloud.filled(fill_value=np.NaN)
         cloud = cloud * min / 2
 
