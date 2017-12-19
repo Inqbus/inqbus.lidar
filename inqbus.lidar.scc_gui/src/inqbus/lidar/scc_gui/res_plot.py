@@ -894,6 +894,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
     def update_lidar_ratio(self):
         self.lr_plot.clear()
+        self.lr_plot.plot(self.mes_data.zero_line_data , self.mes_data.zero_line_alt, pen='k', connect='finite')
         self.lr_plot.plot(self.mes_data.zero_line_data + 100., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
 
         cloud = None
@@ -936,6 +937,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
     def update_depol(self):
         self.depol_plot.clear()
+        self.depol_plot.plot(self.mes_data.zero_line_data , self.mes_data.zero_line_alt, pen='k', connect='finite')
 
         cloud = None
 
