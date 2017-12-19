@@ -704,7 +704,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.plots_limits = {
             'bsc_plot' : 'Backscatter',
             'ext_plot': 'Extinction',
-            'lidar_plot': 'lidar_ratio',
+            'lr_plot': 'lidar_ratio',
             'angstroem_plot': 'angstroem',
             'depol_plot': 'Depol',
         }
@@ -883,18 +883,18 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             self.add_cloud_to_plot(cloud, self.ext_plot, 'ext_plot')
 
     def setup_lidar_ratio(self):
-        self.lidar_plot = self.plot_layout.addPlot(
+        self.lr_plot = self.plot_layout.addPlot(
             axisItems={'bottom': self.plot_3_axis},
-            viewBox=ResultPlotViewBox(self, 'lidar_plot')
+            viewBox=ResultPlotViewBox(self, 'lr_plot')
         )
-        self.lidar_plot.hideAxis('left')
+        self.lr_plot.hideAxis('left')
         self.update_lidar_ratio()
-        self.lidar_plot.setYLink(self.bsc_plot)
-        self.plots.append(self.lidar_plot)
+        self.lr_plot.setYLink(self.bsc_plot)
+        self.plots.append(self.lr_plot)
 
     def update_lidar_ratio(self):
-        self.lidar_plot.clear()
-        self.lidar_plot.plot(self.mes_data.zero_line_data + 100., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
+        self.lr_plot.clear()
+        self.lr_plot.plot(self.mes_data.zero_line_data + 100., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
 
         cloud = None
 
@@ -903,11 +903,11 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                 profile = self.mes_data.data[dtype]
                 orig_profile = self.mes_data.original_data[dtype]
                 try:
-                    self.lidar_plot.plot(orig_profile['data'],
+                    self.lr_plot.plot(orig_profile['data'],
                                        orig_profile['alt'],
                                        pen={'color': self.mes_data.data[dtype]['color'], 'width': 1},
                                        clear=False, connect='finite')
-                    self.lidar_plot.plot(profile['data'],
+                    self.lr_plot.plot(profile['data'],
                                        profile['alt'],
                                        pen={'color': self.mes_data.data[dtype]['color'], 'width': 3},
                                        name=dtype,
@@ -921,7 +921,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     cloud = profile
 
         if cloud is not None:
-            self.add_cloud_to_plot(cloud, self.lidar_plot, 'lidar_plot')
+            self.add_cloud_to_plot(cloud, self.lr_plot, 'lr_plot')
 
     
     def setup_depol(self):

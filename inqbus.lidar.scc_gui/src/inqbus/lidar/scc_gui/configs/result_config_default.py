@@ -50,11 +50,11 @@ RES_LEGEND_LABEL_STYLE = {'color': '#000', 'size': '10pt', 'bold': False, 'itali
 
 RES_SHOW_LEGEND = True
 
-RES_PLOT_NAMES = ['bsc_plot', 'ext_plot', 'lidar_plot', 'angstroem_plot', 'depol_plot']
+RES_PLOT_NAMES = ['bsc_plot', 'ext_plot', 'lr_plot', 'angstroem_plot', 'depol_plot']
 
 # menu config for setting plots Invalid/Valid
 # orders plot -> menu entry -> related graphs
-# possible plots are: 'bsc_plot', 'ext_plot', 'lidar_plot', 'angstroem_plot', 'depol_plot'
+# possible plots are: 'bsc_plot', 'ext_plot', 'lr_plot', 'angstroem_plot', 'depol_plot'
 # related graphs are given as path-tuples e.g. ('b355', 'Backscatter', 'mean') or ('lr255',)
 
 RES_VALIDATION_MENU = {
@@ -70,7 +70,7 @@ RES_VALIDATION_MENU = {
         '532': [('e532', 'Extinction', 'mean'), ('lr532',), ('ae_ext',)],
 
     },
-    'lidar_plot': {
+    'lr_plot': {
         '355': [('e355', 'Backscatter', 'mean'), ('lr355',)],
         '532': [('e532', 'Backscatter', 'mean'), ('lr532',)],
 
@@ -112,5 +112,5 @@ RES_DISPLAY_CLOUD_MENU = {
 
 RES_INITIAL_REGION_WIDTH = 1000
 
-# hsv color to make it transperant
+# hsv color to make it transparent
 RES_CLOUD_LINE_COLOR = (0, 0, 0.5, 0.5)
