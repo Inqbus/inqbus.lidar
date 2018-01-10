@@ -92,12 +92,12 @@ class DataExport(object):
             else:
                 logger.info('No %s data found for %s' % (col, dtype))
 
+        col_dim = file.createDimension('Length', data.size)
+
         for col in export_data.keys():
             data = export_data[col]
 
-            col_dim = file.createDimension(col, data.size)
-
-            var = file.createVariable(col, data.dtype.type, (col,))
+            var = file.createVariable(col, data.dtype.type, ('Length',))
 
             var[:] = data
 
@@ -828,7 +828,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                                        clear=False, connect='finite')
                     self.bsc_plot.plot(profile['data'],
                                        profile['alt'],
-                                       pen={'color': self.mes_data.data[dtype + 'bsc']['color'], 'width': 3}, name=dtype,
+                                       pen={'color': self.mes_data.data[dtype + 'bsc']['color'], 'width': 3}, name=dtype+'bsc',
                                        clear=False, connect='finite')
                 except ValueError:
                     logger.error('Could not plot %s.' % dtype)
