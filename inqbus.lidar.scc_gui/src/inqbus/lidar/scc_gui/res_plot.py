@@ -79,12 +79,14 @@ class DataExport(object):
     def write_variables(self, file, dtype):
         data = self.data.data[dtype]
         export_data = {}
+        points = 0
 
         for col in mc.RES_VAR_NAMES[dtype]:
             if col in data:
                 if 'mean' in data[col]:
                     export_data['Altitude'] = data[col]['mean']['alt']
-                    export_data[col] = data[col]['mean']['data']
+                    export_data[col] = data[col]['mean']['data'] / mc.RES_DATA_SETTINGS[dtype]['scale_factor']
+                    points = max(points, export_data[col].size)
                     if 'cloud' in data[col]['mean']:
                         export_data['__CloudFlag'] = data[col]['mean']['cloud']
                 else:
@@ -92,7 +94,7 @@ class DataExport(object):
             else:
                 logger.info('No %s data found for %s' % (col, dtype))
 
-        col_dim = file.createDimension('Length', data.size)
+        col_dim = file.createDimension('Length', points)
 
         for col in export_data.keys():
             data = export_data[col]
@@ -179,16 +181,11 @@ class ResultData(object):
                 if not (va in self.data[dtype].keys()):
                     self.data[dtype][va] = {'single': []}
 
-                if va in ['Backscatter', 'Extinction']:
-                    vdata = np.ma.masked_array(f.variables[v].data / 1.0E-6, f.variables[v].data > 1E30,
-                                               fill_value=np.nan)
-                    cloud_data = np.ma.masked_array(f.variables['__CloudFlag'].data, f.variables['__CloudFlag'].data == -127)
-                else:
-                    vdata = np.ma.masked_array(f.variables[v].data * 100., f.variables[v].data > 1E30,
-                                               fill_value=np.nan)
-                    cloud_data = np.ma.masked_array(f.variables['__CloudFlag'].data, f.variables['__CloudFlag'].data == -127)
+                vdata = np.ma.masked_array(f.variables[v].data, f.variables[v].data > 1E30,
+                                           fill_value=np.nan)
+                cloud_data = np.ma.masked_array(f.variables['__CloudFlag'].data, f.variables['__CloudFlag'].data == -127)
 
-                self.data[dtype][va]['single'].append({'alt': alt, 'data': vdata, 'cloud': cloud_data})
+                self.data[dtype][va]['single'].append({'alt': alt, 'data': vdata * mc.RES_DATA_SETTINGS[dtype]['scale_factor'], 'cloud': cloud_data})
 
         f.close()
 
