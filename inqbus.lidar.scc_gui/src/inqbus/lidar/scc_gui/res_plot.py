@@ -86,6 +86,7 @@ class DataExport(object):
                 if 'mean' in data[col]:
                     export_data['Altitude'] = data[col]['mean']['alt'] + file.Altitude_meter_asl
                     export_data[col] = data[col]['mean']['data'] / mc.RES_DATA_SETTINGS[dtype]['scale_factor']
+                    export_data['Error'+col] = data[col]['mean']['error'] / mc.RES_DATA_SETTINGS[dtype]['scale_factor']
                     points = max(points, export_data[col].size)
                     if 'cloud' in data[col]['mean']:
                         export_data['__CloudFlag'] = data[col]['mean']['cloud']
@@ -183,9 +184,15 @@ class ResultData(object):
 
                 vdata = np.ma.masked_array(f.variables[v].data, f.variables[v].data > 1E30,
                                            fill_value=np.nan)
+                error_var_name = 'Error'+v
+                edata = np.ma.masked_array(f.variables[error_var_name].data, f.variables[error_var_name].data > 1E30,
+                                           fill_value=np.nan)
                 cloud_data = np.ma.masked_array(f.variables['__CloudFlag'].data, f.variables['__CloudFlag'].data == -127)
 
-                self.data[dtype][va]['single'].append({'alt': alt, 'data': vdata * mc.RES_DATA_SETTINGS[dtype]['scale_factor'], 'cloud': cloud_data})
+                self.data[dtype][va]['single'].append({'alt': alt,
+                                                       'data': vdata * mc.RES_DATA_SETTINGS[dtype]['scale_factor'],
+                                                       'error': edata * mc.RES_DATA_SETTINGS[dtype]['scale_factor'],
+                                                       'cloud': cloud_data})
 
         f.close()
 
@@ -200,6 +207,7 @@ class ResultData(object):
                     if len(single_profiles) == 1:
                         self.data[dtype][varname]['mean'] = {'alt': single_profiles[0]['alt'],
                                                              'data': single_profiles[0]['data'],
+                                                             'error': single_profiles[0]['error'],
                                                              'cloud': single_profiles[0]['cloud']}
                     else:
                         min_start = 15000
@@ -212,6 +220,7 @@ class ResultData(object):
                             max_len = max(max_len, len(single_profiles[p]['alt']))
 
                         data_arr = []
+                        err_arr = []
                         alt_arr = []
                         cloud_arr = []
                         for p in range(len(single_profiles)):
@@ -221,12 +230,15 @@ class ResultData(object):
                             fill_array = np.ma.masked_array(np.ones(idx_shift) * np.nan, mask=True, fill_value=np.nan)
                             d = np.ma.append(fill_array, single_profiles[p][
                                 'data'])  # insert nans in the beginning of profile until beginning of its altitude axis fits to the one of max_start_idx
+                            e = np.ma.append(fill_array, single_profiles[p][
+                                'error'])  # insert nans in the beginning of profile until beginning of its altitude axis fits to the one of max_start_idx
                             a = np.ma.append(fill_array, single_profiles[p]['alt'])
                             c = np.ma.append(fill_array, single_profiles[p]['cloud'])
 
                             fill_length = max_len - len(d)  # len(single_profiles[p]['data'])
                             if fill_length < 0:
                                 dd = d[:fill_length]
+                                ee = e[:fill_length]
                                 aa = a[:fill_length]
                                 cc = c[:fill_length]
                             else:
@@ -234,19 +246,24 @@ class ResultData(object):
                                                                 fill_value=np.nan)
                                 dd = np.ma.append(d,
                                                   fill_array)  # fill the end of profile with nans until its length is equal max_len
+                                ee = np.ma.append(e,
+                                                  fill_array)  # fill the end of profile with nans until its length is equal max_len
                                 aa = np.ma.append(a, fill_array)
 
                                 cc = np.ma.append(c, fill_array)
 
                             dd.fill_value = np.nan
+                            ee.fill_value = np.nan
                             aa.fill_value = np.nan
                             cc.fill_value = np.nan
 
                             data_arr.append(dd)
+                            err_arr.append(ee)
                             alt_arr.append(aa)
                             cloud_arr.append(cc)
 
                         self.data[dtype][varname]['mean'] = {'data': np.ma.mean(data_arr, axis=0),
+                                                             'error': np.ma.mean(err_arr, axis=0),
                                                              'alt': np.ma.max(alt_arr, axis=0),
                                                              'cloud': np.ma.max(cloud_arr, axis=0)}
 
@@ -300,6 +317,7 @@ class ResultData(object):
                 self.data['vldr532']['exists'] = True
                 self.data['pldr532']['mean'] = {}
                 self.data['pldr532']['mean']['data'] = self.data['b532']['ParticleDepolarization']['mean']['data'] / depol_scale
+                self.data['pldr532']['mean']['error'] = self.data['b532']['ParticleDepolarization']['mean']['error'] / depol_scale
                 self.data['pldr532']['mean']['alt'] = self.data['b532']['ParticleDepolarization']['mean']['alt']
                 self.data['pldr532']['mean']['cloud'] = self.data['b532']['ParticleDepolarization']['mean']['cloud']
                 self.data['pldr532']['exists'] = True
@@ -319,6 +337,7 @@ class ResultData(object):
                 self.data['vldr355']['exists'] = True
                 self.data['pldr355']['mean'] = {}
                 self.data['pldr355']['mean']['data'] = self.data['b355']['ParticleDepolarization']['mean']['data'] / depol_scale
+                self.data['pldr355']['mean']['error'] = self.data['b355']['ParticleDepolarization']['mean']['error'] / depol_scale
                 self.data['pldr355']['mean']['alt'] = self.data['b355']['ParticleDepolarization']['mean']['alt']
                 self.data['pldr532']['mean']['cloud'] = self.data['b355']['ParticleDepolarization']['mean']['cloud']
                 self.data['pldr355']['exists'] = True
@@ -356,8 +375,18 @@ class ResultData(object):
         lr_type = dtype.replace('e', 'lr')
 
         if self.data[dtype]['exists']:
-            self.data[lr_type]['data'] = self.data[dtype]['Extinction']['mean']['data'][:] / self.data[dtype]['Backscatter']['mean'][
-                                                                                       'data'][:]
+            bsc_data = self.data[dtype]['Backscatter']['mean']['data']
+            bsc_err  = self.data[dtype]['Backscatter']['mean']['error']
+            ext_data = self.data[dtype]['Extinction']['mean']['data']
+            ext_err  = self.data[dtype]['Extinction']['mean']['error']
+
+
+            self.data[lr_type]['data'] = ext_data[:] / bsc_data[:]
+
+            self.data[lr_type]['error'] = self.data[lr_type]['data'][:] * \
+                                        np.sqrt( np.square( ext_err[:]/ext_data[:] ) + \
+                                                 np.square( bsc_err[:]/bsc_data[:] ) )
+
             self.data[lr_type]['alt'] = self.data[dtype]['Extinction']['mean']['alt']
 
             self.data[lr_type]['exists'] = True
@@ -370,34 +399,45 @@ class ResultData(object):
 
     def get_angstroem_profile(self, target, source1, source2, wl1, wl2):
 
+        logger.info('calculate Angström profile from %s and %s' % (source1, source2))
+
         if source1['alt'][0] < source2['alt'][0]:
             f_source = source1 # first profile
-            s_source = source2 # secons profile
+            s_source = source2 # second profile
             f_wl = wl1
             s_wl = wl2
         else:
             f_source = source2 # first profile
-            s_source = source1 # secons profile
+            s_source = source1 # second profile
             f_wl = wl2
             s_wl = wl1
 
-        if s_source['alt'][0] in f_source['alt']:
+        if s_source['alt'][0] in f_source['alt']: # both profiles have the same altitude grid
             idx_shift = int(np.where(f_source['alt'] == s_source['alt'][0])[0])
             max_bin = min( len(f_source['data']) - idx_shift, len(s_source['data']))
             f_profile = f_source['data'][idx_shift : max_bin+idx_shift]
+            f_error   = f_source['error'][idx_shift : max_bin+idx_shift]
             s_profile = s_source['data'][:max_bin]
+            s_error   = s_source['error'][:max_bin]
             f_alt = f_source['alt'][idx_shift : max_bin +idx_shift]
             s_alt = s_source['alt'][:max_bin]
-        else:
-            s_profile = np.interp(f_source['alt'], s_source['alt'][~s_source['data'].mask] ,s_source['data'][~s_source['data'].mask], left = np.nan, right = np.nan) #interpolation of bsc2 profile to alt1 axis, missing values = nan
+
+        else: # the altitude grid is different -> interpolation is needed
+
+            logger.info('interpolation' )
+
+            s_profile = np.interp(f_source['alt'], s_source['alt'], s_source['data'].filled(fill_value = np.nan), left = np.nan, right = np.nan) #interpolation of bsc2 profile to alt1 axis, missing values = nan
+            s_error   = np.interp(f_source['alt'], s_source['alt'], s_source['error'].filled(fill_value = np.nan), left = np.nan, right = np.nan) #interpolation of bsc2 profile to alt1 axis, missing values = nan
             f_profile = f_source['data']
+            f_error   = f_source['error']
             f_alt = f_source['alt']
             s_alt = f_alt
-
 
         factor = 1/( log(s_wl) - log(f_wl) )
 
         target['data'] = ( np.log(f_profile) - np.log(s_profile) ) *factor
+        target['error'] = target['data'][:] * np.sqrt( np.square( s_error[:]/s_profile[:] ) + \
+                                                       np.square( f_error[:]/f_profile[:] ) )
         target['alt'] = np.ma.max([f_alt, s_alt ], axis = 0)
         target['exists'] = True
 
@@ -421,6 +461,7 @@ class ResultData(object):
         for dtype in mc.RES_CLEAR_DTYPES_DATA:
             if self.data[dtype]['exists']:
                 self.data[dtype]['data'] = self.data[dtype]['data'].filled(fill_value=np.NaN)
+                self.data[dtype]['error'] = self.data[dtype]['error'].filled(fill_value=np.NaN)
                 self.data[dtype]['alt'] = self.data[dtype]['alt'].filled(fill_value=np.NaN)
                 if 'cloud' in self.data[dtype]:
                     self.data[dtype]['cloud'] = self.data[dtype]['cloud'].filled(fill_value=-127)
@@ -430,6 +471,8 @@ class ResultData(object):
                 self.data[dtype]['Backscatter']['mean']['alt'][profile['data'].mask] = np.NaN
                 self.data[dtype]['Backscatter']['mean']['data'] = profile['data'].filled(
                     fill_value=np.NaN)
+                self.data[dtype]['Backscatter']['mean']['error'] = profile['error'].filled(
+                    fill_value=np.NaN)
                 if 'cloud' in profile:
                     self.data[dtype]['Backscatter']['mean']['cloud'] = profile['cloud'].filled(
                         fill_value=-127)
@@ -437,6 +480,7 @@ class ResultData(object):
             if self.data[dtype]['exists']:
                 profile = self.data[dtype]['Extinction']['mean']
                 self.data[dtype]['Extinction']['mean']['data'] = profile['data'].filled(fill_value=np.NaN)
+                self.data[dtype]['Extinction']['mean']['error'] = profile['error'].filled(fill_value=np.NaN)
                 self.data[dtype]['Extinction']['mean']['alt'] = profile['alt'].filled(fill_value=np.NaN)
                 if 'cloud' in profile:
                     self.data[dtype]['Extinction']['mean']['cloud'] = profile['cloud'].filled(
@@ -445,6 +489,7 @@ class ResultData(object):
             if self.data[dtype]['exists']:
                 profile = self.data[dtype]['mean']
                 self.data[dtype]['mean']['data'] = profile['data'].filled(fill_value=np.NaN)
+                self.data[dtype]['mean']['error'] = profile['error'].filled(fill_value=np.NaN)
                 self.data[dtype]['mean']['alt'] = profile['alt'].filled(fill_value=np.NaN)
                 if 'cloud' in profile:
                     self.data[dtype]['mean']['cloud'] = profile['cloud'].filled(
@@ -465,10 +510,12 @@ class ResultData(object):
 
         alt = data['alt']
         data_array = data['data']
+        error_array = data['error']
 
         indexes = np.where((alt > min) & (alt < max))
 
         data_array[indexes] = np.NaN
+        error_array[indexes] = np.NaN
 
     def set_valid(self, min, max, data_path):
         data_path = list(data_path)
@@ -488,6 +535,7 @@ class ResultData(object):
         indexes = np.where((alt > min) & (alt < max))
 
         data['data'][indexes] = original_data['data'][indexes]
+        data['error'][indexes] = original_data['error'][indexes]
 
     def set_cloud(self, min, max, orig_data_path):
         data_path = list(orig_data_path)
