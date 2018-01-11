@@ -124,7 +124,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
             self.mdiArea.addSubWindow(MDI_win)
             MDI_win.showMaximized()
-        except:
+        except Exception as e:
             pass
 
     def new321PlotFromZip(self):

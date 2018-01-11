@@ -39,24 +39,30 @@ ANGSTROEM_CALCULATIONS = {'aeb_uv_vis': {'profile_1': 'b355', 'profile_2': 'b532
                           'ae_ext': {'profile_1': 'e355', 'profile_2': 'e532', 'wl_1': 355., 'wl_2': 532.},
                           }
 
-AUTO_SCALE = True
 # if plots should be scaled automatically (AUTO_SCALE = True), axes are scaled to the values with RES_AXES_LIMITS as initial values
 # if plots should not be scaled automatically (AUTO_SCALE = False), axes are scaled according to RES_AXES_LIMITS
-RES_AXES_LIMITS = {'Backscatter': (-.01, .1),
-               'Extinction': (-5, 50), 
-               'lidar_ratio': (-20, 120), 
-               'angstroem': (-1., 3.), 
-               'Depol': (-.001, .01), 
+AUTO_SCALE = True
+RES_AXES_LIMITS = {'Backscatter': {'min':-.01, 'max':.1, 'min_percentile':0, 'max_percentile':100},
+               'Extinction': {'min':-5, 'max':50, 'min_percentile':0, 'max_percentile':100},
+               'lidar_ratio': {'min':-20, 'max':200, 'min_percentile':0, 'max_percentile':100},
+               'angstroem': {'min':-1., 'max':3., 'min_percentile':5, 'max_percentile':95},
+               'Depol': {'min':-.001, 'max':.01, 'min_percentile':5, 'max_percentile':95},
                }
 
+PROFILES_IN_PLOT = {'Backscatter': ['b355', 'b532', 'b1064', 'e355bsc', 'e532bsc'],
+                    'Extinction': ['e355', 'e532'],
+                    'lidar_ratio': ['lr355', 'lr532'],
+                    'angstroem': ['aeb_uv_vis', 'aeb_vis_ir', 'ae_ext'],
+                    'Depol': ['vldr532', 'pldr532', 'vldr355', 'pldr355'],
+                    }
+
 RES_DTYPES_FOR_MEAN_PROFILE = ['b355','b532','b1064','e355','e532','e355bsc', 'e532bsc','vldr355', 'vldr532', 'pldr355', 'pldr532']
-#RES_DTYPES_FOR_LR = ['e355', 'e532']
 
 # add here to clear them of masked values, because pyqtplot behaves different with masked values. Masked values are replaced by NaN.
-RES_CLEAR_DTYPES_DATA = ['lr355', 'lr532', 'aeb_uv_vis', 'aeb_vis_ir', 'ae_ext']
-RES_CLEAR_DTYPES_BACKSCATTER_MEAN = ['b355', 'b532', 'b1064', 'e355', 'e532']
-RES_CLEAR_DTYPES_EXTINCTION_MEAN = ['e355', 'e532']
-RES_CLEAR_DTYPES_MEAN = ['vldr532', 'pldr532', 'vldr355', 'pldr355']
+#RES_CLEAR_DTYPES_DATA = ['lr355', 'lr532', 'aeb_uv_vis', 'aeb_vis_ir', 'ae_ext']
+#RES_CLEAR_DTYPES_BACKSCATTER_MEAN = ['b355', 'b532', 'b1064', 'e355', 'e532']
+#RES_CLEAR_DTYPES_EXTINCTION_MEAN = ['e355', 'e532']
+#RES_CLEAR_DTYPES_MEAN = ['vldr532', 'pldr532', 'vldr355', 'pldr355']
 
 RES_MIN_ALT = 0
 
@@ -73,28 +79,25 @@ RES_PLOT_NAMES = ['bsc_plot', 'ext_plot', 'lr_plot', 'angstroem_plot', 'depol_pl
 
 RES_VALIDATION_MENU = {
     'bsc_plot' : {
-        '355': [('b355', 'Backscatter', 'mean'), ('aeb_uv_vis',), ('pldr355', 'mean'),],
-        '532': [('b532', 'Backscatter', 'mean'), ('aeb_uv_vis',), ('pldr532', 'mean'), ('aeb_vis_ir',)],
-        '1064': [('b1064', 'Backscatter', 'mean'), ('aeb_vis_ir',)],
-        'e355bsc': [('e355', 'Backscatter', 'mean'), ('lr355',)],
-        'e532bsc': [('e532', 'Backscatter', 'mean'), ('lr532',)],
+        '355': ['b355','aeb_uv_vis','pldr355'],
+        '532': ['b532', 'aeb_uv_vis', 'pldr532', 'aeb_vis_ir'],
+        '1064': ['b1064', 'aeb_vis_ir'],
+        'e355bsc': ['e355bsc', 'lr355'],
+        'e532bsc': ['e532bsc', 'lr532'],
     },
     'ext_plot' : {
-        '355': [('e355', 'Extinction', 'mean'), ('lr355',), ('ae_ext',)],
-        '532': [('e532', 'Extinction', 'mean'), ('lr532',), ('ae_ext',)],
-
+        '355': ['e355', 'lr355', 'ae_ext'],
+        '532': ['e532', 'lr532', 'ae_ext'],
     },
     'lr_plot': {
-        '355': [('e355', 'Backscatter', 'mean'), ('lr355',)],
-        '532': [('e532', 'Backscatter', 'mean'), ('lr532',)],
-
+        '355': ['e355bsc', 'lr355'],
+        '532': ['e532bsc', 'lr532'],
     },
     'depol_plot': {
-        'VLDR 355': [('vldr355', 'mean')],
-        'PLDR 355': [('pldr355', 'mean')],
-        'VLDR 532': [('vldr532', 'mean')],
-        'PLDR 532': [('pldr532', 'mean')],
-
+        'VLDR 355': ['vldr355'],
+        'PLDR 355': ['pldr355'],
+        'VLDR 532': ['vldr532'],
+        'PLDR 532': ['pldr532'],
     },
     'angstroem_plot': {
         'bsc 355': [],
@@ -107,21 +110,9 @@ RES_VALIDATION_MENU = {
 
 # menu config for marking clouds
 RES_DISPLAY_CLOUD_MENU = {
-    'bsc_plot': [
-        ('vldr355', 'mean'),
-        ('pldr355', 'mean'),
-        ('vldr532', 'mean'),
-        ('pldr532', 'mean'),
-        ('b355', 'Backscatter', 'mean'),
-        ('b532', 'Backscatter', 'mean'),
-        ('b1064', 'Backscatter', 'mean'),
-    ],
-    'ext_plot': [
-        ('e355', 'Backscatter', 'mean'),
-        ('e532', 'Backscatter', 'mean'),
-        ('e355', 'Extinction', 'mean'),
-        ('e532', 'Extinction', 'mean'),
-    ]
+    'bsc_plot': ['vldr355', 'pldr355', 'vldr532', 'pldr532',
+                 'b355', 'b532', 'b1064' ],
+    'ext_plot': [ 'e355', 'e532', 'e355bsc', 'e532bsc' ]
 }
 
 RES_INITIAL_REGION_WIDTH = 1000

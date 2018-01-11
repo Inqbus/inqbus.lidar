@@ -77,23 +77,24 @@ class DataExport(object):
             '%H%M%S'))
 
     def write_variables(self, file, dtype):
-        data = self.data.data[dtype]
         export_data = {}
         points = 0
 
         for col in mc.RES_VAR_NAMES[dtype]:
-            if col in data:
-                if 'mean' in data[col]:
-                    export_data['Altitude'] = data[col]['mean']['alt'] + file.Altitude_meter_asl
-                    export_data[col] = data[col]['mean']['data'] #/ mc.RES_DATA_SETTINGS[dtype]['scale_factor']
-                    export_data['Error'+col] = data[col]['mean']['error'] #/ mc.RES_DATA_SETTINGS[dtype]['scale_factor']
-                    points = max(points, export_data[col].size)
-                    if 'cloud' in data[col]['mean']:
-                        export_data['__CloudFlag'] = data[col]['mean']['cloud']
+            if not (col in mc.RES_VAR_NAME_ALIAS):
+                data = self.data.data[ mc.RES_VAR_NAMES[dtype][col] ]
+                if data['exists']:
+                    if 'mean' in data:
+                        export_data['Altitude'] = data['mean']['alt'] + file.Altitude_meter_asl
+                        export_data[col] = data['mean']['data']
+                        export_data['Error'+col] = data['mean']['error']
+                        points = max(points, export_data[col].size)
+                        if 'cloud' in data['mean']:
+                            export_data['__CloudFlag'] = data['mean']['cloud']
+                    else:
+                        logger.info('No mean found for col %s in dtype %s' % (col, dtype))
                 else:
-                    logger.info('No mean found for col %s in dtype %s' % (col, dtype))
-            else:
-                logger.info('No %s data found for %s' % (col, dtype))
+                    logger.info('No %s data found for %s' % (col, dtype))
 
         col_dim = file.createDimension('Length', points)
 
@@ -183,8 +184,8 @@ class ResultData(object):
 
                 dtype = mc.RES_VAR_NAMES[ftype][v]
 
-                if not (va in self.data[dtype].keys()):
-                    self.data[dtype] = {'single': []}
+                if not ('single' in self.data[dtype].keys()):
+                    self.data[dtype]['single'] = []
 
 #                vdata = np.ma.masked_array(f.variables[v].data, f.variables[v].data > 1E30,
 #                                           fill_value=np.nan)
@@ -282,57 +283,24 @@ class ResultData(object):
             self.pldr355_90 = None
             self.vldr355_90 = None
 
+        self.scale_str = ''
+
         if self.plot_depol:
             if self.pldr532_90:
-                if (self.pldr532_90 / self.vldr532_90 < 5.0):
-                    depol_scale = 1.0
-                    self.scale_str = ''
-                else:
-                    depol_scale = 10.0
+                if (self.pldr532_90 / self.vldr532_90 > 5.0):
+                    self.data['pldr532']['scale_factor'] = 10.0
                     self.scale_str = '/10'
-
-#                self.axis_limits['Depol'] = (
-#                min(self.axis_limits['ParticleDepolarization'][0] / depol_scale, self.axis_limits['VolumeDepolarization'][0]) * mc.RES_DATA_SETTINGS['pldr532']['scale_factor'],
-#                max(self.pldr532_90 / depol_scale, self.axis_limits['VolumeDepolarization'][1]) * mc.RES_DATA_SETTINGS['pldr532']['scale_factor'])
-#                 self.data['vldr532']['mean'] = self.data['b532']['VolumeDepolarization']['mean']
-#                 self.data['vldr532']['exists'] = True
-#                 self.data['pldr532']['mean'] = {}
-#                 self.data['pldr532']['mean']['data'] = self.data['b532']['ParticleDepolarization']['mean']['data'] / depol_scale
-#                 self.data['pldr532']['mean']['error'] = self.data['b532']['ParticleDepolarization']['mean']['error'] / depol_scale
-#                 self.data['pldr532']['mean']['alt'] = self.data['b532']['ParticleDepolarization']['mean']['alt']
-#                 self.data['pldr532']['mean']['cloud'] = self.data['b532']['ParticleDepolarization']['mean']['cloud']
-#                 self.data['pldr532']['exists'] = True
 
             if self.pldr355_90:
-                if (self.pldr355_90 / self.vldr355_90 < 5.0):
-                    depol_scale = 1.0
-                    self.scale_str = ''
-                else:
-                    depol_scale = 10.0
+                if (self.pldr355_90 / self.vldr355_90 > 5.0):
+                    self.data['pldr355']['scale_factor'] = 10.0
                     self.scale_str = '/10'
-
-#                self.axis_limits['Depol'] = (
-#                min(self.axis_limits['ParticleDepolarization'][0] / depol_scale, self.axis_limits['VolumeDepolarization'][0]) * mc.RES_DATA_SETTINGS['pldr355']['scale_factor'],
-#                max(self.pldr355_90 / depol_scale, self.axis_limits['VolumeDepolarization'][1]) * mc.RES_DATA_SETTINGS['pldr355']['scale_factor'])
-#                 self.data['vldr355']['mean'] = self.data['b355']['VolumeDepolarization']['mean']
-#                 self.data['vldr355']['exists'] = True
-#                 self.data['pldr355']['mean'] = {}
-#                 self.data['pldr355']['mean']['data'] = self.data['b355']['ParticleDepolarization']['mean']['data'] / depol_scale
-#                 self.data['pldr355']['mean']['error'] = self.data['b355']['ParticleDepolarization']['mean']['error'] / depol_scale
-#                 self.data['pldr355']['mean']['alt'] = self.data['b355']['ParticleDepolarization']['mean']['alt']
-#                 self.data['pldr532']['mean']['cloud'] = self.data['b355']['ParticleDepolarization']['mean']['cloud']
-#                 self.data['pldr355']['exists'] = True
 
             if self.pldr532_90 and self.pldr355_90:
-                if (self.pldr532_90 / self.vldr532_90 < 5.0) and (self.pldr355_90 / self.vldr355_90 < 5.0):
-                    depol_scale = 1.0
-                    self.scale_str = ''
-                else:
-                    depol_scale = 10.0
+                if (self.pldr532_90 / self.vldr532_90 > 5.0) or (self.pldr355_90 / self.vldr355_90 > 5.0):
+                    self.data['pldr532']['scale_factor'] = 10.0
+                    self.data['pldr355']['scale_factor'] = 10.0
                     self.scale_str = '/10'
-#                self.axis_limits['Depol'] = (
-#                min(self.axis_limits['ParticleDepolarization'][0] / depol_scale, self.axis_limits['VolumeDepolarization'][0]),
-#                max(self.pldr532_90 / depol_scale, self.pldr355_90 / depol_scale, self.axis_limits['VolumeDepolarization'][1]))
 
     def set_lr_type(self):
         for dtype in mc.LIDAR_RATIO_CALCULATIONS:
@@ -348,12 +316,6 @@ class ResultData(object):
                                            self.data[type_1]['mean'], self.data[type_2]['mean'],
                                            mc.ANGSTROEM_CALCULATIONS[ae_type]['wl_1'],
                                            mc.ANGSTROEM_CALCULATIONS[ae_type]['wl_2'])
-        # if self.data['b532']['exists'] and self.data['b1064']['exists']:
-        #     self.get_angstroem_profile(self.data['aeb_vis_ir'], self.data['b1064']['Backscatter']['mean'],
-        #                           self.data['b532']['Backscatter']['mean'], 1064., 532.)
-        # if self.data['e532']['exists'] and self.data['e355']['exists']:
-        #     self.get_angstroem_profile(self.data['ae_ext'], self.data['e532']['Extinction']['mean'],
-        #                          self.data['e355']['Extinction']['mean'], 532., 355.)
 
     def get_lr(self, lr_type):
         bsc_type = mc.LIDAR_RATIO_CALCULATIONS[lr_type]['bsc']
@@ -374,12 +336,6 @@ class ResultData(object):
                                           'alt': self.data[ext_type]['mean']['alt'] }
 
             self.data[lr_type]['exists'] = True
-
-#            if 'lidar_ratio' in self.axis_limits.keys():
-#                plot_min = min(self.axis_limits['lidar_ratio'][0], plot_min )
-#                plot_max = max(self.axis_limits['lidar_ratio'][1], plot_max )
-
-#            self.axis_limits['lidar_ratio'] = (plot_min, plot_max)
 
     def get_angstroem_profile(self, target, source1, source2, wl1, wl2):
 
@@ -428,63 +384,20 @@ class ResultData(object):
                           'alt': np.max([f_alt, s_alt ], axis = 0)}
         target['exists'] = True
 
-#        plot_max = np.nanpercentile(target['data'][~target['data'].mask], 95)
-#        plot_min = np.nanpercentile(target['data'][~target['data'].mask], 5)
-#        if 'angstroem' in self.axis_limits.keys():
-#            plot_min = min(self.axis_limits['angstroem'][0], plot_min)
-#            plot_max = max(self.axis_limits['angstroem'][1], plot_max)
-
-#        self.axis_limits['angstroem'] = (plot_min, plot_max)
-
     def set_axes_limits(self):
         if mc.AUTO_SCALE:
-            for dtype in ['b355', 'b532', 'b1064', 'e355bsc', 'e532bsc']:
-                if self.data[dtype]['exists']:
-                    profile = self.data[dtype]['mean']['data']
+            for plot_type in mc.PROFILES_IN_PLOT:
+                for dtype in mc.PROFILES_IN_PLOT[plot_type]:
+                    if self.data[dtype]['exists']:
+                        profile = self.data[dtype]['mean']['data']
 
-                    profile_max = np.nanmax(profile) * mc.RES_DATA_SETTINGS[dtype]['scale_factor']
-                    profile_min = np.nanmin(profile) * mc.RES_DATA_SETTINGS[dtype]['scale_factor']
+                        profile_min = np.nanpercentile(profile, self.axis_limits[plot_type]['min_percentile']) \
+                                      * mc.RES_DATA_SETTINGS[dtype]['scale_factor']
+                        profile_max = np.nanpercentile(profile, self.axis_limits[plot_type]['max_percentile']) \
+                                      * mc.RES_DATA_SETTINGS[dtype]['scale_factor']
 
-                    plot_min = min(self.axis_limits['Backscatter'][0], profile_min)
-                    plot_max = max(self.axis_limits['Backscatter'][1], profile_max)
-
-                    self.axis_limits['Backscatter'] = (plot_min, plot_max)
-
-            for dtype in ['e355', 'e532']:
-                if self.data[dtype]['exists']:
-                    profile = self.data[dtype]['mean']['data']
-
-                    profile_max = np.nanmax(profile) * mc.RES_DATA_SETTINGS[dtype]['scale_factor']
-                    profile_min = np.nanmin(profile) * mc.RES_DATA_SETTINGS[dtype]['scale_factor']
-
-                    plot_min = min(self.axis_limits['Extinction'][0], profile_min)
-                    plot_max = max(self.axis_limits['Extinction'][1], profile_max)
-
-                    self.axis_limits['Extinction'] = (plot_min, plot_max)
-
-            for dtype in mc.LIDAR_RATIO_CALCULATIONS:
-                if self.data[dtype]['exists']:
-                    profile = self.data[dtype]['mean']['data']
-
-                    profile_max = np.nanmax(profile) * mc.RES_DATA_SETTINGS[dtype]['scale_factor']
-                    profile_min = np.nanmin(profile) * mc.RES_DATA_SETTINGS[dtype]['scale_factor']
-
-                    plot_min = min(self.axis_limits['lidar_ratio'][0], profile_min)
-                    plot_max = max(self.axis_limits['lidar_ratio'][1], profile_max)
-
-                    self.axis_limits['lidar_ratio'] = (plot_min, plot_max)
-
-            for dtype in mc.ANGSTROEM_CALCULATIONS:
-                if self.data[dtype]['exists']:
-                    profile = self.data[dtype]['mean']['data']
-
-                    profile_max = np.nanpercentile(profile, 95) * mc.RES_DATA_SETTINGS[dtype]['scale_factor']
-                    profile_min = np.nanpercentile(profile, 5 ) * mc.RES_DATA_SETTINGS[dtype]['scale_factor']
-
-                    plot_min = min(self.axis_limits['angstroem'][0], profile_min)
-                    plot_max = max(self.axis_limits['angstroem'][1], profile_max)
-
-                    self.axis_limits['angstroem'] = (plot_min, plot_max)
+                        self.axis_limits[plot_type]['min'] = min(self.axis_limits[plot_type]['min'], profile_min)
+                        self.axis_limits[plot_type]['max'] = max(self.axis_limits[plot_type]['max'], profile_max)
 
     def set_zero_line_data(self):
         self.zero_line_data = np.zeros((100))
@@ -536,14 +449,11 @@ class ResultData(object):
         self.original_data = copy.deepcopy(self.data)
 
     def set_invalid(self, min, max, data_path):
-        data_path = list(data_path)
-        data = self.data[data_path.pop(0)]
 
-        if not data['exists']:
+        if not self.data[data_path]['exists']:
             return
 
-        for element in data_path:
-            data = data[element]
+        data = self.data[data_path]['mean']
 
         alt = data['alt']
         data_array = data['data']
@@ -555,17 +465,12 @@ class ResultData(object):
         error_array[indexes] = np.NaN
 
     def set_valid(self, min, max, data_path):
-        data_path = list(data_path)
-        first_index = data_path.pop(0)
-        data = self.data[first_index]
-        original_data = self.original_data[first_index]
 
-        if not data['exists']:
+        if not self.data[data_path]['exists']:
             return
 
-        for element in data_path:
-            data = data[element]
-            original_data = original_data[element]
+        data = self.data[data_path]['mean']
+        original_data = self.original_data[data_path]['mean']
 
         alt = data['alt']
 
@@ -575,15 +480,11 @@ class ResultData(object):
         data['error'][indexes] = original_data['error'][indexes]
 
     def set_cloud(self, min, max, orig_data_path):
-        data_path = list(orig_data_path)
-        first_index = data_path.pop(0)
-        data = self.data[first_index]
 
-        if not data['exists']:
+        if not self.data[orig_data_path]['exists']:
             return
 
-        for element in data_path:
-            data = data[element]
+        data = self.data[orig_data_path]['mean']
 
         alt = data['alt']
 
@@ -595,15 +496,11 @@ class ResultData(object):
         data['cloud'][indexes] = 2
 
     def remove_cloud(self, min, max, orig_data_path):
-        data_path = list(orig_data_path)
-        first_index = data_path.pop(0)
-        data = self.data[first_index]
 
-        if not data['exists']:
+        if not self.data[orig_data_path]['exists']:
             return
 
-        for element in data_path:
-            data = data[element]
+        data = self.data[orig_data_path]['mean']
 
         alt = data['alt']
 
@@ -815,7 +712,8 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         for plot in self.plots_limits.keys():
             plot_obj = getattr(self, plot)
             viewbox = plot_obj.vb
-            min, max = self.mes_data.axis_limits[self.plots_limits[plot]]
+            min = self.mes_data.axis_limits[self.plots_limits[plot]]['min']
+            max = self.mes_data.axis_limits[self.plots_limits[plot]]['max']
             viewbox.enableAutoRange(viewbox.XAxis, False)
             viewbox.setXRange(
                 min,
@@ -878,7 +776,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
         cloud = None
 
-        for dtype in ['b355', 'b532', 'b1064', 'e355bsc', 'e532bsc']:
+        for dtype in mc.PROFILES_IN_PLOT['Backscatter']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['mean']
                 orig_profile = self.mes_data.original_data[dtype]['mean']
@@ -899,25 +797,6 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                 if cloud is None and 'cloud' in profile:
                     cloud = profile
 
-        # for dtype in ['e355', 'e532']:
-        #     if self.mes_data.data[dtype]['exists']:
-        #         profile = self.mes_data.data[dtype]['Backscatter']['mean']
-        #         orig_profile = self.mes_data.original_data[dtype]['Backscatter']['mean']
-        #         try:
-        #             self.bsc_plot.plot(orig_profile['data'] * self.mes_data.data[dtype]['scale_factor'],
-        #                                orig_profile['alt'],
-        #                                pen={'color': self.mes_data.data[dtype + 'bsc']['color'], 'width': 1},
-        #                                clear=False, connect='finite')
-        #             self.bsc_plot.plot(profile['data'] * self.mes_data.data[dtype]['scale_factor'],
-        #                                profile['alt'],
-        #                                pen={'color': self.mes_data.data[dtype + 'bsc']['color'], 'width': 3}, name=dtype+'bsc',
-        #                                clear=False, connect='finite')
-        #         except ValueError:
-        #             logger.error('Could not plot %s.' % dtype)
-        #             logger.error("Traceback: %s" % tb.format_exc())
-        #
-        #         if cloud is None and 'cloud' in profile:
-        #             cloud = profile
         if cloud is not None:
             self.add_cloud_to_plot(cloud, self.bsc_plot, 'bsc_plot')
 
@@ -939,7 +818,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
         cloud = None
 
-        for dtype in ['e355', 'e532']:
+        for dtype in mc.PROFILES_IN_PLOT['Extinction']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['mean']
                 orig_profile = self.mes_data.original_data[dtype]['mean']
@@ -981,10 +860,10 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
         cloud = None
 
-        for dtype in ['lr355', 'lr532']:
+        for dtype in mc.PROFILES_IN_PLOT['lidar_ratio']:
             if self.mes_data.data[dtype]['exists']:
-                profile = self.mes_data.data[dtype]
-                orig_profile = self.mes_data.original_data[dtype]
+                profile = self.mes_data.data[dtype]['mean']
+                orig_profile = self.mes_data.original_data[dtype]['mean']
                 try:
                     self.lr_plot.plot(orig_profile['data'] * self.mes_data.data[dtype]['scale_factor'],
                                        orig_profile['alt'],
@@ -1023,7 +902,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
 
         cloud = None
 
-        for dtype in ['vldr532', 'pldr532', 'vldr355', 'pldr355']:
+        for dtype in mc.PROFILES_IN_PLOT['Depol']:
             if self.mes_data.data[dtype]['exists']:
                 profile = self.mes_data.data[dtype]['mean']
                 orig_profile = self.mes_data.original_data[dtype]['mean']
@@ -1067,10 +946,10 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.angstroem_plot.plot(self.mes_data.zero_line_data - 1., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
         self.angstroem_plot.plot(self.mes_data.zero_line_data + 3., self.mes_data.zero_line_alt, pen=0.75, connect='finite')
 
-        for dtype in ['aeb_uv_vis', 'aeb_vis_ir', 'ae_ext']:
+        for dtype in mc.PROFILES_IN_PLOT['angstroem']:
             if self.mes_data.data[dtype]['exists']:
-                profile = self.mes_data.data[dtype]
-                orig_profile = self.mes_data.original_data[dtype]
+                profile = self.mes_data.data[dtype]['mean']
+                orig_profile = self.mes_data.original_data[dtype]['mean']
                 try:
                     self.angstroem_plot.plot(orig_profile['data'] * self.mes_data.data[dtype]['scale_factor'],
                                        orig_profile['alt'],
@@ -1110,7 +989,8 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.update_bsc_profile()
 
     def add_cloud_to_plot(self, cloud_data, plot, plot_name):
-        min, max = self.mes_data.axis_limits[self.plots_limits[plot_name]]
+        min = self.mes_data.axis_limits[self.plots_limits[plot_name]]['min']
+        max = self.mes_data.axis_limits[self.plots_limits[plot_name]]['max']
 
         cloud = np.ma.masked_array(cloud_data['cloud'] * 1.0, cloud_data['cloud'] != 2)
         cloud = cloud.filled(fill_value=np.NaN)
