@@ -261,24 +261,24 @@ class ResultData(object):
                     
     def set_depol(self):
         self.plot_depol = False
-        if self.data['b532']['exists'] and ('ParticleDepol' in self.data['b532'].keys()) and (
-                    'VolumeDepol' in self.data['b532'].keys()):
+        if self.data['b532']['exists'] and ('ParticleDepolarization' in self.data['b532'].keys()) and (
+                    'VolumeDepolarization' in self.data['b532'].keys()):
             self.pldr532_90 = np.nanpercentile(
-                self.data['b532']['ParticleDepol']['mean']['data'][
-                    ~self.data['b532']['ParticleDepol']['mean']['data'].mask], 90)
+                self.data['b532']['ParticleDepolarization']['mean']['data'][
+                    ~self.data['b532']['ParticleDepolarization']['mean']['data'].mask], 90)
             self.vldr532_90 = np.nanpercentile(
-                self.data['b532']['VolumeDepol']['mean']['data'][~self.data['b532']['VolumeDepol']['mean']['data'].mask],
+                self.data['b532']['VolumeDepolarization']['mean']['data'][~self.data['b532']['VolumeDepolarization']['mean']['data'].mask],
                 90)
             self.plot_depol = True
         else:
             self.pldr532_90 = None
             self.vldr532_90 = None
-        if self.data['b355']['exists'] and ('ParticleDepol' in self.data['b355'].keys()) and (
-            'VolumeDepol' in self.data['b355'].keys()):
+        if self.data['b355']['exists'] and ('ParticleDepolarization' in self.data['b355'].keys()) and (
+            'VolumeDepolarization' in self.data['b355'].keys()):
             self.pldr355_90 = np.nanpercentile(
-                self.data['b355']['ParticleDepol']['mean']['data'][~self.data['b355']['ParticleDepol']['mean']['data'].mask], 90)
+                self.data['b355']['ParticleDepolarization']['mean']['data'][~self.data['b355']['ParticleDepolarization']['mean']['data'].mask], 90)
             self.vldr355_90 = np.nanpercentile(
-                self.data['b355']['VolumeDepol']['mean']['data'][~self.data['b355']['VolumeDepol']['mean']['data'].mask], 90)
+                self.data['b355']['VolumeDepolarization']['mean']['data'][~self.data['b355']['VolumeDepolarization']['mean']['data'].mask], 90)
             self.plot_depol = True
         else:
             self.pldr355_90 = None
@@ -294,14 +294,14 @@ class ResultData(object):
                     self.scale_str = '/10'
 
                 self.axis_limits['Depol'] = (
-                min(self.axis_limits['ParticleDepol'][0] / depol_scale, self.axis_limits['VolumeDepol'][0]),
-                max(self.pldr532_90 / depol_scale, self.axis_limits['VolumeDepol'][1]))
-                self.data['vldr532']['mean'] = self.data['b532']['VolumeDepol']['mean']
+                min(self.axis_limits['ParticleDepolarization'][0] / depol_scale, self.axis_limits['VolumeDepolarization'][0]),
+                max(self.pldr532_90 / depol_scale, self.axis_limits['VolumeDepolarization'][1]))
+                self.data['vldr532']['mean'] = self.data['b532']['VolumeDepolarization']['mean']
                 self.data['vldr532']['exists'] = True
                 self.data['pldr532']['mean'] = {}
-                self.data['pldr532']['mean']['data'] = self.data['b532']['ParticleDepol']['mean']['data'] / depol_scale
-                self.data['pldr532']['mean']['alt'] = self.data['b532']['ParticleDepol']['mean']['alt']
-                self.data['pldr532']['mean']['cloud'] = self.data['b532']['ParticleDepol']['mean']['cloud']
+                self.data['pldr532']['mean']['data'] = self.data['b532']['ParticleDepolarization']['mean']['data'] / depol_scale
+                self.data['pldr532']['mean']['alt'] = self.data['b532']['ParticleDepolarization']['mean']['alt']
+                self.data['pldr532']['mean']['cloud'] = self.data['b532']['ParticleDepolarization']['mean']['cloud']
                 self.data['pldr532']['exists'] = True
 
             if self.pldr355_90:
@@ -313,14 +313,14 @@ class ResultData(object):
                     self.scale_str = '/10'
 
                 self.axis_limits['Depol'] = (
-                min(self.axis_limits['ParticleDepol'][0] / depol_scale, self.axis_limits['VolumeDepol'][0]),
-                max(self.pldr355_90 / depol_scale, self.axis_limits['VolumeDepol'][1]))
-                self.data['vldr355']['mean'] = self.data['b355']['VolumeDepol']['mean']
+                min(self.axis_limits['ParticleDepolarization'][0] / depol_scale, self.axis_limits['VolumeDepolarization'][0]),
+                max(self.pldr355_90 / depol_scale, self.axis_limits['VolumeDepolarization'][1]))
+                self.data['vldr355']['mean'] = self.data['b355']['VolumeDepolarization']['mean']
                 self.data['vldr355']['exists'] = True
                 self.data['pldr355']['mean'] = {}
-                self.data['pldr355']['mean']['data'] = self.data['b355']['ParticleDepol']['mean']['data'] / depol_scale
-                self.data['pldr355']['mean']['alt'] = self.data['b355']['ParticleDepol']['mean']['alt']
-                self.data['pldr532']['mean']['cloud'] = self.data['b355']['ParticleDepol']['mean']['cloud']
+                self.data['pldr355']['mean']['data'] = self.data['b355']['ParticleDepolarization']['mean']['data'] / depol_scale
+                self.data['pldr355']['mean']['alt'] = self.data['b355']['ParticleDepolarization']['mean']['alt']
+                self.data['pldr532']['mean']['cloud'] = self.data['b355']['ParticleDepolarization']['mean']['cloud']
                 self.data['pldr355']['exists'] = True
 
             if self.pldr532_90 and self.pldr355_90:
@@ -331,8 +331,8 @@ class ResultData(object):
                     depol_scale = 10.0
                     self.scale_str = '/10'
                 self.axis_limits['Depol'] = (
-                min(self.axis_limits['ParticleDepol'][0] / depol_scale, self.axis_limits['VolumeDepol'][0]),
-                max(self.pldr532_90 / depol_scale, self.pldr355_90 / depol_scale, self.axis_limits['VolumeDepol'][1]))
+                min(self.axis_limits['ParticleDepolarization'][0] / depol_scale, self.axis_limits['VolumeDepolarization'][0]),
+                max(self.pldr532_90 / depol_scale, self.pldr355_90 / depol_scale, self.axis_limits['VolumeDepolarization'][1]))
 
     def set_lr_type(self):
         for dtype in mc.RES_DTYPES_FOR_LR:
@@ -427,8 +427,8 @@ class ResultData(object):
         for dtype in mc.RES_CLEAR_DTYPES_BACKSCATTER_MEAN:
             if self.data[dtype]['exists']:
                 profile = self.data[dtype]['Backscatter']['mean']
-                self.data[dtype]['Backscatter']['mean']['alt'] = profile['alt'][~profile['data'].mask].filled(fill_value=np.NaN)
-                self.data[dtype]['Backscatter']['mean']['data'] = profile['data'][~profile['data'].mask].filled(
+                self.data[dtype]['Backscatter']['mean']['alt'][profile['data'].mask] = np.NaN
+                self.data[dtype]['Backscatter']['mean']['data'] = profile['data'].filled(
                     fill_value=np.NaN)
                 if 'cloud' in profile:
                     self.data[dtype]['Backscatter']['mean']['cloud'] = profile['cloud'].filled(

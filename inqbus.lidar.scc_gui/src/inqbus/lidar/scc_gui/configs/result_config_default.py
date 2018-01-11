@@ -1,13 +1,13 @@
 from datetime import datetime
 
 RES_VAR_NAMES = {'b355': ['Backscatter', 'VolumeDepolarization', 'ParticleDepolarization'], 
-             'b532': ['Backscatter', 'VolumeDepol', 'ParticleDepol', 'VolumeDepolarization', 'ParticleDepolarization'], 
-             'b1064': ['Backscatter'], 
+             'b532': ['Backscatter', 'VolumeDepol', 'ParticleDepol', 'VolumeDepolarization', 'ParticleDepolarization'],
+             'b1064': ['Backscatter'],
              'e355': ['Backscatter', 'Extinction'], 
              'e532': ['Backscatter', 'Extinction'], 
              }
 
-RES_VAR_NAME_ALIAS = {'VolumeDepolarization': 'VolumeDepol', 'ParticleDepolarization': 'ParticleDepol'}
+RES_VAR_NAME_ALIAS = {'VolumeDepol': 'VolumeDepolarization', 'ParticleDepol': 'ParticleDepolarization'}
 
 # scale_factor us used for plotting: data_in_plot = data_in_ncfile * scale_factor
 RES_DATA_SETTINGS = {'b355':{'color':'b', 'exists':False, 'scale_factor': 1.0E6},
