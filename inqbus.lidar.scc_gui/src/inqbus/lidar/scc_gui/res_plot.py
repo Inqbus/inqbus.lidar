@@ -84,7 +84,7 @@ class DataExport(object):
         for col in mc.RES_VAR_NAMES[dtype]:
             if col in data:
                 if 'mean' in data[col]:
-                    export_data['Altitude'] = data[col]['mean']['alt']
+                    export_data['Altitude'] = data[col]['mean']['alt'] + file.Altitude_meter_asl
                     export_data[col] = data[col]['mean']['data'] / mc.RES_DATA_SETTINGS[dtype]['scale_factor']
                     points = max(points, export_data[col].size)
                     if 'cloud' in data[col]['mean']:
