@@ -109,20 +109,23 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             MDI_win.showMaximized()
 
     def new321Plot(self):
-        file_path = self.showFolderOpenDialog()
+        try:
+            file_path = self.showFolderOpenDialog()
 
-        result_data = ResultData.from_directory(file_path)
+            result_data = ResultData.from_directory(file_path)
 
-        MDI_win = QtWidgets.QMdiSubWindow(self)
+            MDI_win = QtWidgets.QMdiSubWindow(self)
 
-        GraphicsView = ResultPlot(MDI_win)
-        GraphicsView.setup(result_data)
+            GraphicsView = ResultPlot(MDI_win)
+            GraphicsView.setup(result_data)
 
-        MDI_win.setWidget(GraphicsView)
-        MDI_win.setWindowTitle(GraphicsView.title)
+            MDI_win.setWidget(GraphicsView)
+            MDI_win.setWindowTitle(GraphicsView.title)
 
-        self.mdiArea.addSubWindow(MDI_win)
-        MDI_win.showMaximized()
+            self.mdiArea.addSubWindow(MDI_win)
+            MDI_win.showMaximized()
+        except:
+            pass
 
     def new321PlotFromZip(self):
         file_path = self.showZipOpenDialog()

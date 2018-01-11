@@ -1,10 +1,12 @@
 from datetime import datetime
 
-RES_VAR_NAMES = {'b355': ['Backscatter', 'VolumeDepolarization', 'ParticleDepolarization'], 
-             'b532': ['Backscatter', 'VolumeDepol', 'ParticleDepol', 'VolumeDepolarization', 'ParticleDepolarization'],
-             'b1064': ['Backscatter'],
-             'e355': ['Backscatter', 'Extinction'], 
-             'e532': ['Backscatter', 'Extinction'], 
+RES_VAR_NAMES = {'b355': {'Backscatter': 'b355', 'VolumeDepolarization': 'vldr355', 'ParticleDepolarization': 'pldr355'},
+             'b532': {'Backscatter':'b532',
+                      'VolumeDepol': 'vldr532', 'VolumeDepolarization':'vldr532',
+                      'ParticleDepol':'pldr532', 'ParticleDepolarization': 'pldr532'},
+             'b1064': {'Backscatter': 'b1064'},
+             'e355': {'Backscatter': 'e355bsc', 'Extinction': 'e355'},
+             'e532': {'Backscatter': 'e532bsc', 'Extinction': 'e532'},
              }
 
 RES_VAR_NAME_ALIAS = {'VolumeDepol': 'VolumeDepolarization', 'ParticleDepol': 'ParticleDepolarization'}
@@ -29,15 +31,26 @@ RES_DATA_SETTINGS = {'b355':{'color':'b', 'exists':False, 'scale_factor': 1.0E6}
         'max_alt': 0, 
         'start_time': datetime(2030,1,1), 'end_time': datetime(2000,1,1)}
 
-RES_AXES_LIMITS = {'Backscatter': (-.01, .1), 
+LIDAR_RATIO_CALCULATIONS = {'lr355': {'bsc': 'e355bsc', 'ext': 'e355'},
+                            'lr532': {'bsc': 'e532bsc', 'ext': 'e532'},
+                            }
+ANGSTROEM_CALCULATIONS = {'aeb_uv_vis': {'profile_1': 'b355', 'profile_2': 'b532', 'wl_1': 355., 'wl_2': 532.},
+                          'aeb_vis_ir': {'profile_1': 'b532', 'profile_2': 'b1064', 'wl_1': 532., 'wl_2': 1064.},
+                          'ae_ext': {'profile_1': 'e355', 'profile_2': 'e532', 'wl_1': 355., 'wl_2': 532.},
+                          }
+
+AUTO_SCALE = True
+# if plots should be scaled automatically (AUTO_SCALE = True), axes are scaled to the values with RES_AXES_LIMITS as initial values
+# if plots should not be scaled automatically (AUTO_SCALE = False), axes are scaled according to RES_AXES_LIMITS
+RES_AXES_LIMITS = {'Backscatter': (-.01, .1),
                'Extinction': (-5, 50), 
                'lidar_ratio': (-20, 120), 
                'angstroem': (-1., 3.), 
                'Depol': (-.001, .01), 
                }
 
-RES_DTYPES_FOR_MEAN_PROFILE = ['b355','b532','b1064','e355','e532']
-RES_DTYPES_FOR_LR = ['e355', 'e532']
+RES_DTYPES_FOR_MEAN_PROFILE = ['b355','b532','b1064','e355','e532','e355bsc', 'e532bsc','vldr355', 'vldr532', 'pldr355', 'pldr532']
+#RES_DTYPES_FOR_LR = ['e355', 'e532']
 
 # add here to clear them of masked values, because pyqtplot behaves different with masked values. Masked values are replaced by NaN.
 RES_CLEAR_DTYPES_DATA = ['lr355', 'lr532', 'aeb_uv_vis', 'aeb_vis_ir', 'ae_ext']
