@@ -24,6 +24,13 @@ OVL_PATH = os.path.join(BASE_PATH, 'overlaps')
 # this is the directory where lidar-log-files are located
 LIDAR_LOG_PATH = os.path.join(BASE_PATH, 'logs')
 
+# This is the directory, where the original optical data (b and e files) are located
+RESULT_DATA_PATH = os.path.join(BASE_PATH, 'res_data')
+
+# the final, quality controlled optical data (b and e files) are written into this directory
+RESULT_EXPORT_PATH = os.path.join(BASE_PATH, 'res_exported')
+
+
 # log files are written into this directory
 SYS_LOG_PATH = os.path.join(BASE_PATH, 'gui_log')
 # log files are written into this file

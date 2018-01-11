@@ -34,7 +34,8 @@
      <string>New</string>
     </property>
     <addaction name="actionLIDARPlot"/>
-    <!--<addaction name="action3_2_1"/>-->
+    <addaction name="action3_2_1"/>
+    <addaction name="action3_2_1_from_zip"/>
    </widget>
    <addaction name="menuNew"/>
   </widget>
@@ -52,6 +53,11 @@
   <action name="action3_2_1">
    <property name="text">
     <string>3+2+1</string>
+   </property>
+  </action>
+  <action name="action3_2_1_from_zip">
+   <property name="text">
+    <string>3+2+1 From Zip File</string>
    </property>
   </action>
  </widget>

@@ -5,6 +5,8 @@ import string
 import numpy
 from scipy.io import netcdf
 
+from inqbus.lidar.scc_gui.log import logger
+
 NC_FILL_INT = -2147483647
 NC_FILL_FLOAT = 9.9692099683868690e+36
 NC_FILL_DOUBLE = 9.9692099683868690e+36
@@ -194,7 +196,7 @@ def extract_session_time(measurement, sched_start, sched_stop):
 
 def write(path, measurement, sched_start, sched_stop):
     extract_session_time(measurement, sched_start, sched_stop)
-    print('write file', ncname(measurement))
+    logger.info('write file', ncname(measurement))
     outfile = netcdf.netcdf_file(
         os.path.join(
             path,
