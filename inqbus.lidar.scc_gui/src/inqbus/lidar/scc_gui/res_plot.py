@@ -9,13 +9,16 @@ from collections import OrderedDict
 
 import numpy as np
 import pyqtgraph as pg
-from PyQt5.QtWidgets import QAction, QMenu
+from PyQt5 import uic
+from PyQt5.QtWidgets import QAction, QMenu, QWidgetAction
 from pyqtgraph.graphicsItems.LegendItem import ItemSample
+from qtpy import QtGui
 from scipy.io import netcdf
 
-from inqbus.lidar.scc_gui import util
+from inqbus.lidar.scc_gui import util, PROJECT_PATH
 from inqbus.lidar.scc_gui.axis import HeightAxis, DataAxis
 from inqbus.lidar.scc_gui.configs import main_config as mc
+from inqbus.lidar.scc_gui.configs.base_config import resource_path
 from inqbus.lidar.scc_gui.log import logger
 
 
@@ -643,6 +646,7 @@ class ResultPlotViewBox(pg.ViewBox):
         self.plot_name = plot_name
         self.regions = {}
         self.data = self.plot_parent.mes_data
+        self.ctrl = []
 
         super(ResultPlotViewBox, self).__init__()
 
@@ -663,11 +667,66 @@ class ResultPlotViewBox(pg.ViewBox):
 
         menu.setTitle("Plot options")
 
+        self.viewAll = QAction("View All", self)
+        self.viewAll.triggered.connect(self.autoRange)
+        self.addAction(self.viewAll)
+
+        for axis in 'XY':
+            w = ui = uic.loadUi(
+                resource_path(
+                    os.path.join(
+                        PROJECT_PATH,
+                        'UI/axisCtrlTemplateSimple.ui')))
+
+            sub_a = QWidgetAction(self)
+            sub_a.setDefaultWidget(w)
+
+            a = menu.addMenu("%s Axis" % axis)
+            a.addAction(sub_a)
+
+            self.ctrl.append(ui)
+
+            connects = [
+                (ui.minText.editingFinished, 'MinTextChanged'),
+                (ui.maxText.editingFinished, 'MaxTextChanged'),
+            ]
+
+            for sig, fn in connects:
+                sig.connect(getattr(self, axis.lower() + fn))
+
         store_as_netcdf = QAction("Export as Netcdf", self)
         store_as_netcdf.triggered.connect(self.export_data)
         menu.addAction(store_as_netcdf)
 
+        self.updateStates()
+        self.sigStateChanged.connect(self.viewStateChanged)
+        self.sigRangeChanged.connect(self.viewStateChanged)
+        self.sigRangeChangedManually.connect(self.viewStateChanged)
+
         return menu
+
+    def viewStateChanged(self):
+        self.updateStates()
+
+    def updateStates(self):
+        state = self.getState(copy=False)
+
+        for i in [0, 1]:  # x, y
+            tr = state['targetRange'][i]
+            self.ctrl[i].minText.setText("%0.5g" % tr[0])
+            self.ctrl[i].maxText.setText("%0.5g" % tr[1])
+
+    def xMinTextChanged(self):
+        self.setLimits(xMin=float(self.ctrl[0].minText.text()))
+
+    def xMaxTextChanged(self):
+        self.setLimits(xMax=float(self.ctrl[0].maxText.text()))
+
+    def yMinTextChanged(self):
+        self.setLimits(yMin=float(self.ctrl[0].minText.text()))
+
+    def yMaxTextChanged(self):
+        self.setLimits(yMax=float(self.ctrl[0].maxText.text()))
 
     def export_data(self):
         self.data.export()
