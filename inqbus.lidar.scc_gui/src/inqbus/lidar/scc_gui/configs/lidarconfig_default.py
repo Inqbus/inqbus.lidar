@@ -182,8 +182,18 @@ GRADIENT = {'ticks': [(0.0, (0, 0, 0, 255)), (1.0, (255, 255, 255, 255))],
 GROUND_PRES = 1000.  # hPa
 GROUND_TEMP = 15.  # degC
 
+# when reading Wyoming files, the following key words are used to find the beginning and end of the data section
+# = end of header / begin of footer
 SONDE_HEADER_STR = 'hPa'
 SONDE_BOTTOM_STR = 'Station'
+
+# if radio sonde data are from Ninjo system, no coordinates are provided within the csv files.
+# In this case, the following coordinates are used.
+SONDE_STATIONS = {'10954': {'name': 'Altenstadt', 'lat': 47.50, 'lon': 10.52, 'alt': 756},
+                  '10962': {'name': 'Hohenpeissenberg', 'lat': 47.8, 'lon': 11.01, 'alt': 977},
+                  '11120': {'name': 'Innsbruck', 'lat': 47.16, 'lon': 11.21, 'alt': 593},
+                  '10868': {'name': 'Oberschleissheim', 'lat': 48.25, 'lon': 11.55, 'alt': 492},
+                  }
 
 # -------------------------------------------------------------------
 # constants - do not change!

@@ -335,12 +335,12 @@ class Sonde(object):
         time_str = os.path.split(sonde_filename)[1].split('_')[2].split('z')[0]
         result.header.time = datetime.datetime.strptime(
             date_str + time_str, '%y%m%d%H')
-        result.header.location = rp.SONDE_STATIONS[result.header.WMO_id]['name']
+        result.header.location = mc.SONDE_STATIONS[result.header.WMO_id]['name']
         result.header.filename = 'rs_' + measurementID + '.nc'
 
-        result.header.latitude = rp.SONDE_STATIONS[result.header.WMO_id]['lat']
-        result.header.longitude = rp.SONDE_STATIONS[result.header.WMO_id]['lon']
-        result.header.altitude = rp.SONDE_STATIONS[result.header.WMO_id]['alt']
+        result.header.latitude = mc.SONDE_STATIONS[result.header.WMO_id]['lat']
+        result.header.longitude = mc.SONDE_STATIONS[result.header.WMO_id]['lon']
+        result.header.altitude = mc.SONDE_STATIONS[result.header.WMO_id]['alt']
 
         for l in range(len(lines) - 1, 0, -1):
             line_data = lines[l].split(';')

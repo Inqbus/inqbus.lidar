@@ -144,21 +144,21 @@ class SCC_raw_Params_Dialog(QtGui.QDialog):
 
     def openFileDialog(self):
         try:
-            filepath = self.showRawOpenDialog()
+            filepath = self.showSondeOpenDialog()
             self.SondeFile_Edit.setText(filepath)
         except WrongFileStorage:
             QtGui.QMessageBox.about(
                 self, "Done", "sonde file must be located under %s" % mc.SONDE_PATH)
 
-    def showRawOpenDialog(self):
+    def showSondeOpenDialog(self):
         sender = self.sender()
         filename = mc.SONDE_PATH
 
         file_path = QtWidgets.QFileDialog.getOpenFileName(
             self,
-            "Open raw data file",
+            "Open sonde data file",
             QtCore.QDir().filePath(filename),
-            '*.txt')[0]
+            'Wyoming sonde (*.txt);;GDAS sonde (*gdas*.txt);;Ninjo sonde (*.csv)')[0]
 
 #        if mc.SONDE_PATH in file_path:
         file_path = file_path.replace(mc.SONDE_PATH + '/', '')
