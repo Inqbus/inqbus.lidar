@@ -8,7 +8,6 @@ BASE_PATH = 'C:\\inqbus.lidar\\test_data'
 
 # This is the directory, where your raw lidar data are located
 DATA_PATH = os.path.join(BASE_PATH, 'data')
-IN_PATH = os.path.join(BASE_PATH, 'raw_nc')
 
 # If your raw lidar data are zip files, the are temporarily unpacked into this directory.
 TEMP_PATH = 'c:\\temp'
