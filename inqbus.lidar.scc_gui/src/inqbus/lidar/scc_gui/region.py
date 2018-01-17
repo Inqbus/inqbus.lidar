@@ -108,7 +108,7 @@ class SCC_raw_Params_Dialog(QtGui.QDialog):
 
         self.ui.openFile.clicked.connect(self.openFileDialog)
 
-        if self.plot.measurement.header.measurement_id == '':
+        if not self.plot.measurement.header.measurement_id:
             self.MeasurementID_Edit.setText(self.plot.measurement.time_axis.start[int(
                 round(a_parent_region.getRegion()[0]))].strftime('%Y%m%d') + mc.STATION_ID + '__')
         else:

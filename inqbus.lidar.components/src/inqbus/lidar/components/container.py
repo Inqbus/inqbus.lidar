@@ -11,7 +11,6 @@ from inqbus.lidar.scc_gui.log import logger
 from netCDF4 import Dataset
 from scipy.io import netcdf
 
-import inqbus.lidar.components.params as rp
 from inqbus.lidar.components import nameddict, error
 from inqbus.lidar.components.error import NoCalIdxFound, PathDoesNotExist
 from inqbus.lidar.components.util import get_file_from_path
@@ -539,9 +538,8 @@ class Measurement(object):
         )
         self.header.zenith_angle = nc_file.variables['zenithangle'].getValue()
 
-        self.header.measurement_id = rp.MEASUREMENT_ID
-        if rp.COMMENT != '':
-            self.header.comment = rp.COMMENT
+        self.header.measurement_id = None
+        self.header.comment = None
         self.header.pressure = mc.GROUND_PRES
         self.header.temperature = mc.GROUND_TEMP
 
