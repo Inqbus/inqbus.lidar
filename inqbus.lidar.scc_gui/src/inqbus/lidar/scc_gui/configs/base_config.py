@@ -21,4 +21,4 @@ except BaseException:
     pass
 
 
-app_name = "Quicklook"
+app_name = "SCC interface"
