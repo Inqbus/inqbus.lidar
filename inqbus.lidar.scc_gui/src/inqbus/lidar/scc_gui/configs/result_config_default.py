@@ -9,6 +9,28 @@ RES_VAR_NAMES = {'b355': {'Backscatter': 'b355', 'VolumeDepolarization': 'vldr35
              'e532': {'Backscatter': 'e532bsc', 'Extinction': 'e532'},
              }
 
+VARIABLE_ATTRIBUTES = { 'Altitude': {'long_name': "Height above sea level",
+                                     'units': "m"},
+                        'VerticalResolution': {'long_name': "effective vertical resolution according to Pappalardo et al., appl. opt. 2004",
+                                                'units': "m"},
+                        '__CloudFlag': {'long_name': "1: no cloud; 2: cirrus; 4: low cloud",
+                                        '_FillValue': -127},
+
+                        'Backscatter': {'units': "1/(m*sr)"},
+                        'ErrorBackscatter': {'long_name': "absolute error of Backscatter",
+                                             'units': "1/(m*sr)"},
+
+                        'Extinction': {'units': "1/m"},
+                        'ErrorExtinction': {'long_name': "absolute error of Extinction",
+                                             'units': "1/m"},
+
+                        'VolumeDepolarization' :{},
+                        'ErrorVolumeDepolarization': {'long_name': "absolute error of VolumeDepolarization"},
+
+                        'ParticleDepolarization': {},
+                        'ErrorParticleDepolarization': {'long_name': "absolute error of ParticleDepolarization"},
+                        }
+
 RES_VAR_NAME_ALIAS = {'VolumeDepol': 'VolumeDepolarization', 'ParticleDepol': 'ParticleDepolarization'}
 
 # scale_factor us used for plotting: data_in_plot = data_in_ncfile * scale_factor
