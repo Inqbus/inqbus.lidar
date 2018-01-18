@@ -179,7 +179,7 @@ class SCC_DPcal_Params_Dialog(QtGui.QDialog):
             self)
         self.plot = a_plot
         self.parent_region = a_parent_region
-        if self.plot.measurement.header.measurement_id == '':
+        if not self.plot.measurement.header.measurement_id :
             self.MeasurementID_Edit.setText(self.plot.measurement.time_axis.start[int(
                 round(a_parent_region.getRegion()[0]))].strftime('%Y%m%d') + mc.STATION_ID + '__')
         else:
@@ -190,9 +190,9 @@ class SCC_DPcal_Params_Dialog(QtGui.QDialog):
         This is called if you click on the OK button
         """
         self.plot.measurement.header.measurement_id = qt2pythonStr(
-            self.MeasurementID_Edit.text)
+            self.MeasurementID_Edit.text())
         self.plot.measurement.header.comment = qt2pythonStr(
-            self.Comment_Edit.text)
+            self.Comment_Edit.text())
 
         try:
             self.plot.save_as_depolcal_scc(self.parent_region.getRegion())
