@@ -413,10 +413,10 @@ class ResultData(object):
 
             logger.info('interpolation')
 
-            s_profile = np.interp(f_source['alt'], s_source['alt'], s_source['data'].filled(fill_value=np.nan),
+            s_profile = np.interp(f_source['alt'], s_source['alt'], s_source['data'],
                                   left=np.nan,
                                   right=np.nan)  # interpolation of bsc2 profile to alt1 axis, missing values = nan
-            s_error = np.interp(f_source['alt'], s_source['alt'], s_source['error'].filled(fill_value=np.nan),
+            s_error = np.interp(f_source['alt'], s_source['alt'], s_source['error'],
                                 left=np.nan,
                                 right=np.nan)  # interpolation of bsc2 profile to alt1 axis, missing values = nan
             f_profile = f_source['data']

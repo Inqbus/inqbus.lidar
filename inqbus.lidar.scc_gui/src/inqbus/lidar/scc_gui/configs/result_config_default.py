@@ -108,8 +108,8 @@ RES_VALIDATION_MENU = {
         'e532bsc': ['e532bsc', 'lr532'],
     },
     'ext_plot' : {
-        '355': ['e355', 'lr355', 'ae_ext'],
-        '532': ['e532', 'lr532', 'ae_ext'],
+        '355': ['e355', 'lr355', 'e355bsc', 'ae_ext'],
+        '532': ['e532', 'lr532', 'e532bsc', 'ae_ext'],
     },
     'lr_plot': {
         '355': ['e355bsc', 'lr355'],
