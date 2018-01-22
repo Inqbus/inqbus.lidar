@@ -123,13 +123,14 @@ class DataExport(object):
         for col in export_data.keys():
             data = export_data[col]
 
-            var = file.createVariable(col, data.dtype.type, ('Length',))
+            if not np.all(np.isnan(data)):
+                var = file.createVariable(col, data.dtype.type, ('Length',))
 
-            #create variable attributes
-            for v_att in mc.VARIABLE_ATTRIBUTES[col]:
-                setattr(var, v_att, mc.VARIABLE_ATTRIBUTES[col][v_att])
+                #create variable attributes
+                for v_att in mc.VARIABLE_ATTRIBUTES[col]:
+                    setattr(var, v_att, mc.VARIABLE_ATTRIBUTES[col][v_att])
 
-            var[:] = data
+                var[:] = data
 
 
 class ResultData(object):
