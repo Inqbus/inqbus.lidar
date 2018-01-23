@@ -13,6 +13,7 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QMenu, QWidgetAction
 from pyqtgraph.graphicsItems.LegendItem import ItemSample
 from qtpy import QtGui
+from pyqtgraph.Qt import QtCore
 from scipy.io import netcdf
 
 from inqbus.lidar.scc_gui import util, PROJECT_PATH
@@ -71,7 +72,7 @@ class DataExport(object):
             setattr(file, attr, data[dtype]['attributes'][attr])
             file.flush()
 
-        file.Comments = data['Comments']
+        file.Comments = str(data['Comments'])
         file.StartDate = int(data['start_time'].strftime(
             '%Y%m%d'))
         file.StartTime_UT = int(data['start_time'].strftime(
@@ -704,9 +705,9 @@ class ResultPlotViewBox(pg.ViewBox):
             for sig, fn in connects:
                 sig.connect(getattr(self, axis.lower() + fn))
 
-        store_as_netcdf = QAction("Export as Netcdf", self)
-        store_as_netcdf.triggered.connect(self.export_data)
-        menu.addAction(store_as_netcdf)
+#        store_as_netcdf = QAction("Export as Netcdf", self)
+#        store_as_netcdf.triggered.connect(self.export_data)
+#        menu.addAction(store_as_netcdf)
 
         self.updateStates()
         self.sigStateChanged.connect(self.viewStateChanged)
@@ -738,8 +739,8 @@ class ResultPlotViewBox(pg.ViewBox):
     def yMaxTextChanged(self):
         self.setLimits(yMax=float(self.ctrl[0].maxText.text()))
 
-    def export_data(self):
-        self.data.export()
+#    def export_data(self):
+#        self.data.export()
 
     def mouseClickEvent(self, ev):
         if not self.menu:
@@ -811,6 +812,84 @@ class ResultPlot(pg.GraphicsLayoutWidget):
         self.setBackground('w')
         self.setDataRanges()
         self.set_legends()
+
+        self.create_menu()
+
+    # Actions for the menu
+    def create_actions(self):
+        """
+        Here a list of Actions is provided for the menu:
+            util.createMappedAction(
+                mapper,
+                None,
+                "&", self,
+                None,
+                "export as quality controlled profile (*.nc) files"),
+        Creates an action called "export as quality controlled profile (*.nc) files" in the menu which calls the "export as quality controlled profile (*.nc) files" function on the currently active instance
+        """
+        self.mapper = QtCore.QSignalMapper()
+        self.mapper.mapped[str].connect(self.mappedQuicklookAction)
+        self._actions = [
+
+            util.createMappedAction(
+                self.mapper,
+                None,
+                "&export as quality controlled profile (*.nc) files", self,
+                QtGui.QKeySequence(),
+                "export_data"),
+
+            # util.createMappedAction(
+            #     self.mapper,
+            #     None,
+            #     "&was anderes wird passieren", self,
+            #     QtGui.QKeySequence(),
+            #     "was_anderes"),
+        ]
+    # Main menu for profile plot
+    def create_menu(self):
+        """
+        Contructs the menu and populates it with the actions defined in create_actions
+        :return:
+        """
+        self.create_actions()
+        self._menu = QtGui.QMenu('profile plot')
+        for action in self._actions:
+            self._menu.addAction(action)
+        menuBar = util.get_main_win().menuBar()
+        for action in menuBar.actions():
+            if action.menu().title() == "profile plot":
+                menuBar.removeAction(action)
+        menuBar.addMenu(self._menu)
+
+    @QtCore.pyqtSlot(str)
+    def mappedQuicklookAction(self, method_name):
+        """
+        All menu actions of the quicklook menu are mapped by the Signal Mapper to this function.
+        Here the currently active quicklook instance will be derived and the function name (String) of the action will be
+        called on this instance.
+        """
+        # find currently active quicklook instance
+        active_win = util.get_active_MDI_win()
+        # call the function of the action on the instance
+        getattr(active_win, str(method_name))()
+
+    # Menu Handler
+    # ==================================================================================================================
+    def export_data(self):
+        self.mes_data.export()
+        # QtGui.QMessageBox.about(
+        #     self,
+        #     "Es ist was geschehen",
+        #     "Hier passiertgerade was in Fenster %s" %
+        #     self.title)
+
+    # def was_anderes(self):
+    #     QtGui.QMessageBox.about(
+    #         self,
+    #         "Es ist was geschehen",
+    #         "Was anders ist in Fenster %s geschehen" %
+    #         self.title)
+
 
     def setDataRanges(self):
         viewbox = self.bsc_plot.vb

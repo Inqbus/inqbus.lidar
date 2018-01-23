@@ -33,7 +33,7 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
 
         self.resize(mc.PLOT_WINDOW_SIZE[0], mc.PLOT_WINDOW_SIZE[1])
 
-        self.create_menu()
+#        self.create_menu()
 
         self.show()
 
@@ -51,83 +51,83 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
         # contour and profile goes to the left top.
         self.addItem(self.contour_profile_layout, 0, 0)
 
-    # Menu setup
-    # ========================================================================================================================
-
-    # Actions for the menu
-    def create_actions(self):
-        """
-        Here a list of Actions is provided for the menu:
-            util.createMappedAction(
-                mapper,
-                None,
-                "&", self,
-                None,
-                "tu_was"),
-        Creates an action called "tu_was" in the menu which calls the "tu_was" function on the currently active instance
-        """
-        self.mapper = QtCore.QSignalMapper()
-        self.mapper.mapped[str].connect(self.mappedQuicklookAction)
-        self._actions = [
-
-            util.createMappedAction(
-                self.mapper,
-                None,
-                "&tu was!", self,
-                QtGui.QKeySequence(),
-                "etwas_geschieht"),
-
-            util.createMappedAction(
-                self.mapper,
-                None,
-                "&was anderes wird passieren", self,
-                QtGui.QKeySequence(),
-                "was_anderes"),
-        ]
-
-    # Main menu for quicklooks
-    def create_menu(self):
-        """
-        Contructs the menu and populates it with the actions defined in create_actions
-        :return:
-        """
-        self.create_actions()
-        self._menu = QtGui.QMenu('Quicklook')
-        for action in self._actions:
-            self._menu.addAction(action)
-        menuBar = util.get_main_win().menuBar()
-        for action in menuBar.actions():
-            if action.menu().title() == "Quicklook":
-                menuBar.removeAction(action)
-        menuBar.addMenu(self._menu)
-
-    @QtCore.pyqtSlot(str)
-    def mappedQuicklookAction(self, method_name):
-        """
-        All menu actions of the quicklook menu are mapped by the Signal Mapper to this function.
-        Here the currently active quicklook instance will be derived and the function name (String) of the action will be
-        called on this instance.
-        """
-        # find currently active quicklook instance
-        active_win = util.get_active_MDI_win()
-        # call the function of the action on the instance
-        getattr(active_win, str(method_name))()
-
-    # Menu Handler
-    # ==================================================================================================================
-    def etwas_geschieht(self):
-        QtGui.QMessageBox.about(
-            self,
-            "Es ist was geschehen",
-            "Hier passiertgerade was in Fenster %s" %
-            self.title)
-
-    def was_anderes(self):
-        QtGui.QMessageBox.about(
-            self,
-            "Es ist was geschehen",
-            "Was anders ist in Fenster %s geschehen" %
-            self.title)
+    # # Menu setup
+    # # ========================================================================================================================
+    #
+    # # Actions for the menu
+    # def create_actions(self):
+    #     """
+    #     Here a list of Actions is provided for the menu:
+    #         util.createMappedAction(
+    #             mapper,
+    #             None,
+    #             "&", self,
+    #             None,
+    #             "tu_was"),
+    #     Creates an action called "tu_was" in the menu which calls the "tu_was" function on the currently active instance
+    #     """
+    #     self.mapper = QtCore.QSignalMapper()
+    #     self.mapper.mapped[str].connect(self.mappedQuicklookAction)
+    #     self._actions = [
+    #
+    #         util.createMappedAction(
+    #             self.mapper,
+    #             None,
+    #             "&tu was!", self,
+    #             QtGui.QKeySequence(),
+    #             "etwas_geschieht"),
+    #
+    #         util.createMappedAction(
+    #             self.mapper,
+    #             None,
+    #             "&was anderes wird passieren", self,
+    #             QtGui.QKeySequence(),
+    #             "was_anderes"),
+    #     ]
+    #
+    # # Main menu for quicklooks
+    # def create_menu(self):
+    #     """
+    #     Contructs the menu and populates it with the actions defined in create_actions
+    #     :return:
+    #     """
+    #     self.create_actions()
+    #     self._menu = QtGui.QMenu('Quicklook')
+    #     for action in self._actions:
+    #         self._menu.addAction(action)
+    #     menuBar = util.get_main_win().menuBar()
+    #     for action in menuBar.actions():
+    #         if action.menu().title() == "Quicklook":
+    #             menuBar.removeAction(action)
+    #     menuBar.addMenu(self._menu)
+    #
+    # @QtCore.pyqtSlot(str)
+    # def mappedQuicklookAction(self, method_name):
+    #     """
+    #     All menu actions of the quicklook menu are mapped by the Signal Mapper to this function.
+    #     Here the currently active quicklook instance will be derived and the function name (String) of the action will be
+    #     called on this instance.
+    #     """
+    #     # find currently active quicklook instance
+    #     active_win = util.get_active_MDI_win()
+    #     # call the function of the action on the instance
+    #     getattr(active_win, str(method_name))()
+    #
+    # # Menu Handler
+    # # ==================================================================================================================
+    # def etwas_geschieht(self):
+    #     QtGui.QMessageBox.about(
+    #         self,
+    #         "Es ist was geschehen",
+    #         "Hier passiertgerade was in Fenster %s" %
+    #         self.title)
+    #
+    # def was_anderes(self):
+    #     QtGui.QMessageBox.about(
+    #         self,
+    #         "Es ist was geschehen",
+    #         "Was anders ist in Fenster %s geschehen" %
+    #         self.title)
 
     # Plot specific things
     # ==================================================================================================================
