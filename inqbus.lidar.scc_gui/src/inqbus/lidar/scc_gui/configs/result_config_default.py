@@ -116,9 +116,9 @@ RES_VALIDATION_MENU = {
         '532': ['e532bsc', 'lr532'],
     },
     'depol_plot': {
-        'VLDR 355': ['vldr355'],
+        'VLDR 355': ['vldr355', 'pldr355'],
         'PLDR 355': ['pldr355'],
-        'VLDR 532': ['vldr532'],
+        'VLDR 532': ['vldr532', 'pldr532'],
         'PLDR 532': ['pldr532'],
     },
     'angstroem_plot': {
