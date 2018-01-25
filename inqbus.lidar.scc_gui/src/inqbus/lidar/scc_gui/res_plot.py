@@ -21,6 +21,7 @@ from inqbus.lidar.scc_gui.axis import HeightAxis, DataAxis
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.configs.base_config import resource_path
 from inqbus.lidar.scc_gui.log import logger
+#from inqbus.lidar.scc_gui.app import app
 
 
 class DataExport(object):
@@ -28,6 +29,7 @@ class DataExport(object):
     def __init__(self, data):
         self.data = data
         self.export_dir = os.path.join(mc.RESULT_EXPORT_PATH, self.data.meas_id)
+        self.overwrite_all = False
         if not os.path.exists(self.export_dir):
             os.makedirs(self.export_dir)
 
@@ -54,13 +56,16 @@ class DataExport(object):
         file.close()
 
     def create_file(self, filename):
-        outfile = netcdf.netcdf_file(
-            os.path.join(
-                self.export_dir,
-                filename),
-            'w',
-            False,
-            1)
+        full_filename = os.path.join(self.export_dir, filename)
+        #if os.path.exists(full_filename) and ~self.overwrite_all:
+            #QtGui.QMessageBox.about(app.main_window, "The file already exists.", "Do you want to overwrite?")
+            #                msgBox.setText("The file already exists.");
+            #                msgBox.setInformativeText("Do you want to overwrite?");
+            #                msgBox.setStandardButtons(QMessageBox::Overwrite | QMessageBox::Discard | QMessageBox::Cancel);
+            #                msgBox.setDefaultButton(QMessageBox::Cancel);
+            #                ret = msgBox.exec();
+
+        outfile = netcdf.netcdf_file(full_filename, 'w', False, 1)
         return outfile
 
     def write_header(self, file, dtype):
@@ -72,7 +77,7 @@ class DataExport(object):
             setattr(file, attr, data[dtype]['attributes'][attr])
             file.flush()
 
-        file.Comments = str(data['Comments'])
+        file.Comments = data['Comments']
         file.StartDate = int(data['start_time'].strftime(
             '%Y%m%d'))
         file.StartTime_UT = int(data['start_time'].strftime(
@@ -443,6 +448,8 @@ class ResultData(object):
     def set_axes_limits(self):
         if mc.AUTO_SCALE:
             for plot_type in mc.PROFILES_IN_PLOT:
+                self.axis_limits[plot_type]['min'] = mc.RES_AXES_LIMITS[plot_type]['min']
+                self.axis_limits[plot_type]['max'] = mc.RES_AXES_LIMITS[plot_type]['max']
                 for dtype in mc.PROFILES_IN_PLOT[plot_type]:
                     if self.data[dtype]['exists']:
                         profile = self.data[dtype]['mean']['data']
@@ -824,8 +831,8 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                 None,
                 "&", self,
                 None,
-                "export as quality controlled profile (*.nc) files"),
-        Creates an action called "export as quality controlled profile (*.nc) files" in the menu which calls the "export as quality controlled profile (*.nc) files" function on the currently active instance
+                "export as quality controlled nc files"),
+        Creates an action called "export as quality controlled nc files" in the menu which calls the "export as quality controlled nc files" function on the currently active instance
         """
         self.mapper = QtCore.QSignalMapper()
         self.mapper.mapped[str].connect(self.mappedQuicklookAction)
@@ -834,7 +841,7 @@ class ResultPlot(pg.GraphicsLayoutWidget):
             util.createMappedAction(
                 self.mapper,
                 None,
-                "&export as quality controlled profile (*.nc) files", self,
+                "&export as quality controlled nc files", self,
                 QtGui.QKeySequence(),
                 "export_data"),
 
@@ -877,11 +884,8 @@ class ResultPlot(pg.GraphicsLayoutWidget):
     # ==================================================================================================================
     def export_data(self):
         self.mes_data.export()
-        # QtGui.QMessageBox.about(
-        #     self,
-        #     "Es ist was geschehen",
-        #     "Hier passiertgerade was in Fenster %s" %
-        #     self.title)
+        QtGui.QMessageBox.about(
+            self, "Done", "quality controlled nc files were created")
 
     # def was_anderes(self):
     #     QtGui.QMessageBox.about(

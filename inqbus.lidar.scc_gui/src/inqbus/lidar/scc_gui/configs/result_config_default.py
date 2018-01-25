@@ -66,7 +66,7 @@ ANGSTROEM_CALCULATIONS = {'aeb_uv_vis': {'profile_1': 'b355', 'profile_2': 'b532
 AUTO_SCALE = True
 RES_AXES_LIMITS = {'Backscatter': {'min':-.01, 'max':.1, 'min_percentile':0, 'max_percentile':100},
                'Extinction': {'min':-5, 'max':50, 'min_percentile':0, 'max_percentile':100},
-               'lidar_ratio': {'min':-20, 'max':200, 'min_percentile':0, 'max_percentile':100},
+               'lidar_ratio': {'min':-20, 'max':200, 'min_percentile':10, 'max_percentile':90},
                'angstroem': {'min':-1., 'max':3., 'min_percentile':5, 'max_percentile':95},
                'Depol': {'min':-.001, 'max':.01, 'min_percentile':5, 'max_percentile':95},
                }
@@ -134,7 +134,7 @@ RES_VALIDATION_MENU = {
 RES_DISPLAY_CLOUD_MENU = {
     'bsc_plot': ['vldr355', 'pldr355', 'vldr532', 'pldr532',
                  'b355', 'b532', 'b1064' ],
-    'ext_plot': [ 'e355', 'e532', 'e355bsc', 'e532bsc' ]
+    'ext_plot': [ 'e355', 'e532', 'e355bsc', 'e532bsc', 'lr355', 'lr532' ]
 }
 
 RES_INITIAL_REGION_WIDTH = 1000
