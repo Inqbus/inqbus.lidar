@@ -353,10 +353,19 @@ class Sonde(object):
                         ''))
                 tt = float(line_data[2].replace(',', '.'))
                 rh = float(line_data[4])
-                dummy['pp'].append(pp)
-                dummy['alt'].append(alt)
-                dummy['tt'].append(tt)
-                dummy['rh'].append(rh)
+
+                if len(dummy['pp']) == 0:
+                    dummy['pp'].append(pp)
+                    dummy['alt'].append(alt)
+                    dummy['tt'].append(tt)
+                    dummy['rh'].append(rh)
+                else:
+                    if (pp != dummy['pp'][-1]) and (alt != dummy['alt'][-1]):
+                        dummy['pp'].append(pp)
+                        dummy['alt'].append(alt)
+                        dummy['tt'].append(tt)
+                        dummy['rh'].append(rh)
+
             except BaseException:
                 Error = 1
         sf.close()
@@ -404,7 +413,7 @@ class Sonde(object):
 
         pres_var[:] = self.data['pp'][:]
         temp_var[:] = self.data['tt'][:]
-        alt_var[:] = self.data['alt'][:]
+        alt_var[:] = self.data['alt'][:] - outfile.Altitude_meter_asl
 
         if 'mr' in self.data.keys():
             mr_var = outfile.createVariable(
