@@ -408,7 +408,7 @@ class Sonde(object):
             'Temperature', np.float64, ('points',))
         temp_var.Units = 'C'
         alt_var = outfile.createVariable('Altitude', np.float64, ('points',))
-        alt_var.Comments = 'Height above lidar station'
+#        alt_var.Comments = 'Height above lidar station'
         alt_var.Units = 'm'
 
         pres_var[:] = self.data['pp'][:]
