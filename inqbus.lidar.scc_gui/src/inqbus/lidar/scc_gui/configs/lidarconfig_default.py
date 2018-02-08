@@ -192,7 +192,8 @@ SONDE_BOTTOM_STR = 'Station'
 SONDE_STATIONS = {'10954': {'name': 'Altenstadt', 'lat': 47.50, 'lon': 10.52, 'alt': 756},
                   '10962': {'name': 'Hohenpeissenberg', 'lat': 47.8, 'lon': 11.01, 'alt': 977},
                   '11120': {'name': 'Innsbruck', 'lat': 47.16, 'lon': 11.21, 'alt': 593},
-                  '10868': {'name': 'Oberschleissheim', 'lat': 48.25, 'lon': 11.55, 'alt': 492},
+                  '10868': {'name': 'Oberschleissheim', 'lat': 48.25, 'lon': 11.55, 'alt': 484},
+                  '10739': {'name': 'Stuttgart', 'lat': 48.83, 'lon': 9.2, 'alt': 314},
                   }
 
 # -------------------------------------------------------------------
