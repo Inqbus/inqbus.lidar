@@ -44,6 +44,32 @@ class RegionMenu(QtGui.QMenu):
             'Filter and save as depol cal file')
         self.save_as_depolcal.triggered.connect(self.view.save_as_depolcal)
 
+        self.addSeparator()
+
+        self.telecover_set_as_north = self.addAction('telecover - set as north')
+        self.telecover_set_as_north.triggered.connect(self.view.telecover_set_as_north)
+
+        self.telecover_set_as_east = self.addAction('telecover - set as east')
+        self.telecover_set_as_east.triggered.connect(self.view.telecover_set_as_east)
+
+        self.telecover_set_as_south = self.addAction('telecover - set as south')
+        self.telecover_set_as_south.triggered.connect(self.view.telecover_set_as_south)
+
+        self.telecover_set_as_west = self.addAction('telecover - set as west')
+        self.telecover_set_as_west.triggered.connect(self.view.telecover_set_as_west)
+
+        self.telecover_set_as_north2 = self.addAction('telecover - set as north2')
+        self.telecover_set_as_north2.triggered.connect(self.view.telecover_set_as_north2)
+
+#        self.telecover_set_as_rayleigh = self.addAction('telecover - set as Rayleigh')
+#        self.telecover_set_as_rayleigh.triggered.connect(self.view.telecover_set_as_rayleigh)
+
+#        self.telecover_set_as_dark = self.addAction('telecover - set as dark')
+#        self.telecover_set_as_dark.triggered.connect(self.view.telecover_set_as_dark)
+
+        self.analyse_telecover = self.addAction('telecover - analyse')
+        self.analyse_telecover.triggered.connect(self.view.analyse_telecover)
+
 
 class RegionDialog(QtGui.QDialog):
 
@@ -280,3 +306,40 @@ class MenuLinearRegionItem(LinearRegionItem):
     def period_dialog(self):
         dialog = RegionDialog(self, self.plot)
         dialog.exec_()
+
+    def telecover_set_as_north(self):
+        self.update()
+        self.plot.set_telecover_region(self.getRegion(), 'north')
+
+
+    def telecover_set_as_east(self):
+        self.update()
+        self.plot.set_telecover_region(self.getRegion(), 'east')
+
+
+    def telecover_set_as_west(self):
+        self.update()
+        self.plot.set_telecover_region(self.getRegion(), 'west')
+
+
+    def telecover_set_as_south(self):
+        self.update()
+        self.plot.set_telecover_region(self.getRegion(), 'south')
+
+
+    def telecover_set_as_north2(self):
+        self.update()
+        self.plot.set_telecover_region(self.getRegion(), 'north2')
+
+
+    def telecover_set_as_rayleigh(self):
+        self.update()
+        self.plot.set_telecover_region(self.getRegion(), 'rayleigh')
+
+
+    def telecover_set_as_dark(self):
+        self.update()
+        self.plot.set_telecover_region(self.getRegion(), 'dark')
+
+    def analyse_telecover(self):
+        self.plot.measurement.analyse_telecover()

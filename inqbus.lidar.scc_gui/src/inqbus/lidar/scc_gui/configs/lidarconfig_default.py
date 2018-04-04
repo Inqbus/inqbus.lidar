@@ -197,6 +197,19 @@ SONDE_STATIONS = {'10954': {'name': 'Altenstadt', 'lat': 47.50, 'lon': 10.52, 'a
                   }
 
 # -------------------------------------------------------------------
+# configurations for telecover measurements
+# -------------------------------------------------------------------
+TC_NORMALIZATION_RANGE = (4000,5000)
+TC_SMOOTH_BINS = 4
+TC_CHANNELS = ['chan_0', 'chan_1', 'chan_2', 'chan_3', 'chan_4', 'chan_5']
+TC_RATIOS = range(4)
+TC_RATIO_NAMES = ['R355/387', 'R532/607', 'R532s/532', 'R1064/607']
+TC_NOMINATORS = ['chan_0', 'chan_2', 'chan_3', 'chan_5']
+TC_DENOMINATORS = ['chan_1', 'chan_4', 'chan_2', 'chan_4']
+TC_COLORS = {'north':'blue', 'north2':'cyan', 'east':'r', 'south': 'orange', 'west':'lime', 'dark':'k'}
+
+
+# -------------------------------------------------------------------
 # constants - do not change!
 # -------------------------------------------------------------------
 

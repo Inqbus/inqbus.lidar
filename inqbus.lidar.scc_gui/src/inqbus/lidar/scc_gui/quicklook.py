@@ -226,6 +226,12 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
             logger.error("%s does not exist." % mc.OUT_PATH)
             raise PathDoesNotExist
 
+    def set_telecover_region(self, a_region, sector_name):
+        region_start, region_stop = self.clear_region_borders(a_region)
+        region_start = max([region_start, 0])
+        region_stop = min([region_stop, self.measurement.mask.size - 1])
+        self.measurement.set_telecover_region((region_start, region_stop), sector_name)
+
     def save_as_depolcal_scc(self, a_region):
         region_start, region_stop = self.clear_region_borders(a_region)
         region_stop = min([region_stop, self.measurement.mask.size - 1])

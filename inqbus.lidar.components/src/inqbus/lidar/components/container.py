@@ -7,6 +7,7 @@ import traceback as tb
 from collections import Counter
 
 import numpy as np
+import matplotlib.pyplot as plt
 from inqbus.lidar.scc_gui.log import logger
 from netCDF4 import Dataset
 from scipy.io import netcdf
@@ -516,6 +517,137 @@ class Measurement(object):
         self.mask = None
         # will be set by read_signal
         self.title = None
+        self.telecover_data = {'profiles':{}, 'used_sectors':[], 'used_data_sectors':[]}
+
+
+    def set_telecover_region(self, a_region, sector_name):
+        if not sector_name in self.telecover_data['used_sectors']:
+            self.telecover_data['used_sectors'].append(sector_name)
+
+            if (sector_name != 'north2') and (sector_name != 'dark') and (sector_name != 'rayleigh'):
+                self.telecover_data['used_data_sectors'].append(sector_name)
+
+        self.telecover_data['profiles'][sector_name] = {'start_idx': a_region[0], 'stop_idx': a_region[1]}
+
+
+    def analyse_telecover(self):
+        norm_bin_first = np.where(self.z_axis.height_axis.data > mc.TC_NORMALIZATION_RANGE[0])[0][0]
+        norm_bin_last  = np.where(self.z_axis.height_axis.data > mc.TC_NORMALIZATION_RANGE[1])[0][0]
+        points_smooth = int(self.z_axis.height_axis.data.size / mc.TC_SMOOTH_BINS)
+
+        # for each channel and each sector: calculate range-corrected signals
+        # for each channel and each sector: calculate normalized signals
+        # smooth
+        self.telecover_data['rc_signals'] = {}
+        self.telecover_data['sm_rc_signals'] = {}
+        self.telecover_data['sm_norm_signals'] = {}
+
+        for sector in self.telecover_data['used_sectors']:
+            self.telecover_data['rc_signals'][sector] = {}
+            self.telecover_data['sm_rc_signals'][sector] = {}
+            self.telecover_data['sm_norm_signals'][sector] = {}
+
+            first = self.telecover_data['profiles'][sector]['start_idx']
+            last  = self.telecover_data['profiles'][sector]['stop_idx']
+
+            for ch in mc.TC_CHANNELS:
+                rc_signal = np.average(self.pre_processed_signals[ch].data[first:last], axis = 0)
+                self.telecover_data['rc_signals'][sector][ch] = rc_signal
+                self.telecover_data['sm_rc_signals'][sector][ch] = np.average(rc_signal.reshape((points_smooth, mc.TC_SMOOTH_BINS)), axis=1)
+
+                norm = np.average(self.telecover_data['rc_signals'][sector][ch][norm_bin_first: norm_bin_last])
+                norm_signal = self.telecover_data['rc_signals'][sector][ch] / norm
+                self.telecover_data['sm_norm_signals'][sector][ch] = np.average(norm_signal.reshape((points_smooth, mc.TC_SMOOTH_BINS)), axis=1)
+
+        # for each channel: calculate mean of all sectors
+        self.telecover_data['mean'] = {}
+        for ch in mc.TC_CHANNELS:
+            data = np.array([])
+            for sector in self.telecover_data['used_data_sectors']:
+                data = np.append(data, self.telecover_data['sm_norm_signals'][sector][ch])
+            data = data.reshape(points_smooth, len(self.telecover_data['used_data_sectors']))
+            self.telecover_data['mean'][ch] = np.average(data, axis = 1)
+
+        # for each channel and each sector: calculate deviation from mean
+        self.telecover_data['dev'] = {}
+        for ch in mc.TC_CHANNELS:
+            for sector in self.telecover_data['used_data_sectors']:
+                sector_data = self.telecover_data['sm_norm_signals'][sector][ch]
+                mean = self.telecover_data['mean'][ch]
+                self.telecover_data['dev'][ch] = ( sector_data - mean) / mean
+
+        # for each channel and each sector: calculate ratio to mean
+        self.telecover_data['ratio'] = {}
+        for ch in mc.TC_CHANNELS:
+            for sector in self.telecover_data['used_data_sectors']:
+                sector_data = self.telecover_data['sm_norm_signals'][sector][ch]
+                mean = self.telecover_data['mean'][ch]
+                self.telecover_data['ratio'][ch] = sector_data / mean
+
+        # for each channel: calculate RMSD
+        self.telecover_data['RMSD'] = {}
+        for ch in mc.TC_CHANNELS:
+            data = np.zeros(points_smooth)
+            for sector in self.telecover_data['used_data_sectors']:
+                data = data + np.square(self.telecover_data['dev'][ch])
+            self.telecover_data['RMSD'][ch] = data / len(self.telecover_data['used_data_sectors'])
+
+        # for each sector: calculate signal ratios
+        self.telecover_data['ratios'] = {}
+        for r in mc.TC_RATIOS:
+            data = np.array([])
+            for sector in self.telecover_data['used_data_sectors']:
+                self.telecover_data['ratios'][sector] = {}
+                # calc ratio for each sector
+                nom_data   = self.telecover_data['sm_norm_signals'][sector][mc.TC_NOMINATORS[r]]
+                denom_data = self.telecover_data['sm_norm_signals'][sector][mc.TC_DENOMINATORS[r]]
+                self.telecover_data['ratios'][sector][mc.TC_RATIO_NAMES[r]] = nom_data/ denom_data
+                # collect data for average of all sectors
+                data = np.append(data, self.telecover_data['ratios'][sector][mc.TC_RATIO_NAMES[r]])
+            # calc average of all sectors
+            data = data.reshape(points_smooth, len(self.telecover_data['used_data_sectors']))
+            self.telecover_data['mean'][mc.TC_RATIO_NAMES[r]] = np.average(data, axis = 1)
+
+        # plot range corrected signals
+        for r in range(2):
+            fig, axes = plt.subplots(nrows=3, ncols=2, sharex=True, sharey=True, figsize=(8.2, 11.6))
+
+            ymax = 0
+            for ch in mc.TC_CHANNELS:
+                for sector in ['north', 'east', 'south', 'west', 'north2']:
+                    if sector in self.telecover_data['used_sectors']:
+                        ymax = max(ymax, max(self.telecover_data['sm_rc_signals'][sector][ch][1:MAX_PLOT_BIN[r]]))
+
+            for ch in mc.TC_CHANNELS:
+                prow = int(ch / 2)
+                pcol = ch % 2
+
+                for sector in ['north', 'east', 'south', 'west', 'north2']:
+                    if sector in self.telecover_data['used_sectors']:
+                        axes[prow, pcol].plot(range_smooth[0:MAX_PLOT_BIN[r]],
+                                              self.telecover_data['sm_rc_signals'][sector][ch][0:MAX_PLOT_BIN[r]] ,
+                                              color=mc.TC_COLORS[sector], label=sector)
+
+                axes[prow, pcol].set_title(CHANNEL_NAMES[ch], fontsize=10, verticalalignment='bottom')
+                axes[prow, pcol].grid()
+
+            for prow in range(3):
+                axes[prow, 0].set_ylabel('rc signal')
+                for pcol in [0, 1]:
+                    axes[prow, pcol].set_xlim((0, MAX_PLOT_HEIGHT[r]))
+                    axes[prow, pcol].set_ylim((0, ymax))
+
+            for pcol in [0, 1]:
+                axes[2, pcol].set_xlabel('height, m')
+
+            plt.subplots_adjust(wspace=0.05, hspace=0.15)  # right = 0.83
+            plt.figtext(0.3, 0.96, LIDAR + ' telecover ' + tc_date.strftime('%d.%m.%Y'), fontsize=14)
+            axes[0, 0].legend(bbox_to_anchor=(0., 1.1, 2.05, .102), loc=3, ncol=6, mode="expand", borderaxespad=0.)
+
+            plt.savefig(
+                os.path.join(OUT_PATH, 'telecover_rcs_' + RANGE_ID[r] + '_' + tc_date.strftime('%Y%m%d') + '.png'))
+            plt.close()
+
 
     def read_signal(self, sig_filename):
         if sig_filename.endswith('.zip'):
