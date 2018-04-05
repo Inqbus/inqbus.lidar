@@ -7,6 +7,9 @@ from PyQt5 import QtGui
 # configurations for normal measurements
 # -------------------------------------------------------------------
 
+# name or id of the lidar. used, e.g. for titel of telecover plots
+LIDAR_NAME = 'RALPH'
+
 #Number of channels that shall be exported under more than one label.
 # Example: for some product configuration in SCC (e.g. backscatter retrievals with usecase 0)
 # the toatal signal must be labelled as signal type 'elT'. For other products (e.g. depolarization)
@@ -199,9 +202,12 @@ SONDE_STATIONS = {'10954': {'name': 'Altenstadt', 'lat': 47.50, 'lon': 10.52, 'a
 # -------------------------------------------------------------------
 # configurations for telecover measurements
 # -------------------------------------------------------------------
-TC_NORMALIZATION_RANGE = (4000,5000)
+TC_NORMALIZATION_RANGE = (4000,5000) #[m]
+TC_MAX_PLOT_HEIGHT = [2000, 6000] #[m]
+TC_RANGE_ID = ['nr', 'fr']
 TC_SMOOTH_BINS = 4
 TC_CHANNELS = ['chan_0', 'chan_1', 'chan_2', 'chan_3', 'chan_4', 'chan_5']
+TC_CHANNEL_NAMES = {'chan_0': '355', 'chan_1':'387', 'chan_2':'532', 'chan_3':'532s', 'chan_4':'607', 'chan_5':'1064'}
 TC_RATIOS = range(4)
 TC_RATIO_NAMES = ['R355/387', 'R532/607', 'R532s/532', 'R1064/607']
 TC_NOMINATORS = ['chan_0', 'chan_2', 'chan_3', 'chan_5']

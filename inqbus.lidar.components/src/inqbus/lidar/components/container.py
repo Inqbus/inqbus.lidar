@@ -530,10 +530,121 @@ class Measurement(object):
         self.telecover_data['profiles'][sector_name] = {'start_idx': a_region[0], 'stop_idx': a_region[1]}
 
 
+    def plot_tc_output_per_ratio(self):
+        # plot data in near range (r=0) and far range(r=1)
+
+        ratio_data = self.telecover_data['ratios']
+
+        for r in range(len(mc.TC_RANGE_ID)):
+            max_plot_bin = np.where(self.telecover_data['range_smooth'] > mc.TC_MAX_PLOT_HEIGHT[r])[0][0]
+            fig, axes = plt.subplots(nrows=4, ncols=2, sharex=True, sharey=True, figsize=(8.2, 11.6))
+#            fig, axes = plt.subplots(nrows=4, ncols=2, sharex=True, figsize=(8.2, 11.6))
+
+            ymax = 0
+            ymin = 1e6
+            for ratio in mc.TC_RATIOS:
+                r_name = mc.TC_RATIO_NAMES[ratio]
+                for sector in ['north', 'east', 'south', 'west', 'north2']:
+                    if sector in self.telecover_data['used_sectors']:
+                        ymax = max(ymax, np.nanpercentile(ratio_data[sector][r_name][1: max_plot_bin], 100) )
+                        ymin = min(ymin, np.nanpercentile(ratio_data[sector][r_name][1: max_plot_bin], 0))
+
+            for ratio in mc.TC_RATIOS:
+                r_name = mc.TC_RATIO_NAMES[ratio]
+                prow = ratio
+
+                pcol = 0
+                for sector in ['north', 'east', 'south', 'west', 'north2']:
+                    if sector in self.telecover_data['used_sectors']:
+                        axes[prow, pcol].plot(self.telecover_data['range_smooth'][0: max_plot_bin],
+                                              ratio_data[sector][r_name][0: max_plot_bin],
+                                              color=mc.TC_COLORS[sector], label=sector)
+                axes[prow, pcol].set_title('normalized ' + r_name, fontsize=10, verticalalignment='bottom')
+                axes[prow, pcol].grid()
+
+                pcol = 1
+                for sector in ['north', 'east', 'south', 'west', 'north2']:
+                    if sector in self.telecover_data['used_sectors']:
+                        axes[prow, pcol].plot(self.telecover_data['range_smooth'][0: max_plot_bin],
+                                              ratio_data[sector][r_name+'_dev'][0: max_plot_bin],
+                                              color=mc.TC_COLORS[sector], label=sector)
+                axes[prow, pcol].set_title('deviation ' + r_name, fontsize=10, verticalalignment='bottom')
+                axes[prow, pcol].grid()
+
+            for prow in range(4):
+                axes[prow, 0].set_ylabel('signal ratio')
+#                axes[prow, 0].set_ylim((ymin, ymax))
+                axes[prow, 1].set_ylim((-.3, .3))
+                for pcol in [0, 1]:
+                    axes[prow, pcol].set_xlim((0, mc.TC_MAX_PLOT_HEIGHT[r]))
+
+            for pcol in [0, 1]:
+                axes[3, pcol].set_xlabel('height, m')
+
+            plt.subplots_adjust(wspace=0.15, hspace=0.15)  # right = 0.83
+            plt.figtext(0.1, 0.96,
+                        mc.LIDAR_NAME + ' telecover ratios ' +
+                        self.telecover_data['tc_date'].strftime('%d.%m.%Y') +
+                        ' normalized: ' + str(mc.TC_NORMALIZATION_RANGE) + 'm',
+                        fontsize=14)
+            axes[0, 0].legend(bbox_to_anchor=(0., 1.12, 2.05, .102), loc=3, ncol=6, mode="expand", borderaxespad=0.)
+
+            plt.savefig(
+                os.path.join(mc.TELECOVER_PATH, 'telecover_ratios_' + mc.TC_RANGE_ID[r] + '_' + self.telecover_data['tc_date'].strftime('%Y%m%d') + '.png'))
+            plt.close()
+
+    def plot_tc_output_per_channel(self, data, min_percentile, max_percentile, plot_label, title_str):
+        # plot data in near range (r=0) and far range(r=1)
+        for r in range(len(mc.TC_RANGE_ID)):
+            max_plot_bin = np.where(self.telecover_data['range_smooth'] > mc.TC_MAX_PLOT_HEIGHT[r])[0][0]
+            fig, axes = plt.subplots(nrows=3, ncols=2, sharex=True, sharey=True, figsize=(8.2, 11.6))
+
+            ymax = 0
+            ymin = 1e6
+            for ch in mc.TC_CHANNELS:
+                for sector in ['north', 'east', 'south', 'west', 'north2']:
+                    if sector in self.telecover_data['used_sectors']:
+                        ymax = max(ymax, np.nanpercentile(data[sector][ch][1: max_plot_bin], max_percentile) )
+                        ymin = min(ymin, np.nanpercentile(data[sector][ch][1: max_plot_bin], min_percentile))
+
+            for ch in mc.TC_CHANNELS:
+                ch_idx = mc.TC_CHANNELS.index(ch)
+                prow = int(ch_idx / 2)
+                pcol = ch_idx % 2
+
+                for sector in ['north', 'east', 'south', 'west', 'north2']:
+                    if sector in self.telecover_data['used_sectors']:
+                        axes[prow, pcol].plot(self.telecover_data['range_smooth'][0: max_plot_bin],
+                                              data[sector][ch][0: max_plot_bin],
+                                              color=mc.TC_COLORS[sector], label=sector)
+
+                axes[prow, pcol].set_title(mc.TC_CHANNEL_NAMES[ch], fontsize=10, verticalalignment='bottom')
+                axes[prow, pcol].grid()
+
+            for prow in range(3):
+                axes[prow, 0].set_ylabel(plot_label)
+                for pcol in [0, 1]:
+                    axes[prow, pcol].set_xlim((0, mc.TC_MAX_PLOT_HEIGHT[r]))
+                    axes[prow, pcol].set_ylim((ymin, ymax))
+
+            for pcol in [0, 1]:
+                axes[2, pcol].set_xlabel('height, m')
+
+            plt.subplots_adjust(wspace=0.05, hspace=0.15)  # right = 0.83
+            plt.figtext(0.2, 0.96, mc.LIDAR_NAME + ' telecover ' + self.telecover_data['tc_date'].strftime('%d.%m.%Y') + title_str, fontsize=14)
+            axes[0, 0].legend(bbox_to_anchor=(0., 1.1, 2.05, .102), loc=3, ncol=6, mode="expand", borderaxespad=0.)
+
+            plt.savefig(
+                os.path.join(mc.TELECOVER_PATH,
+                             'telecover_{}_'.format(plot_label) + mc.TC_RANGE_ID[r] + '_' + self.telecover_data['tc_date'].strftime('%Y%m%d') + '.png'))
+            plt.close()
+
     def analyse_telecover(self):
         norm_bin_first = np.where(self.z_axis.height_axis.data > mc.TC_NORMALIZATION_RANGE[0])[0][0]
         norm_bin_last  = np.where(self.z_axis.height_axis.data > mc.TC_NORMALIZATION_RANGE[1])[0][0]
         points_smooth = int(self.z_axis.height_axis.data.size / mc.TC_SMOOTH_BINS)
+        self.telecover_data['range_smooth'] = np.average(self.z_axis.range_axis.data.reshape((points_smooth, mc.TC_SMOOTH_BINS)), axis=1)
+        self.telecover_data['tc_date'] = self.time_axis.start[0]
 
         # for each channel and each sector: calculate range-corrected signals
         # for each channel and each sector: calculate normalized signals
@@ -549,6 +660,8 @@ class Measurement(object):
 
             first = self.telecover_data['profiles'][sector]['start_idx']
             last  = self.telecover_data['profiles'][sector]['stop_idx']
+            if self.time_axis.start[first] > self.telecover_data['tc_date']:
+                self.telecover_data['tc_date'] = self.time_axis.start[first]
 
             for ch in mc.TC_CHANNELS:
                 rc_signal = np.average(self.pre_processed_signals[ch].data[first:last], axis = 0)
@@ -570,84 +683,68 @@ class Measurement(object):
 
         # for each channel and each sector: calculate deviation from mean
         self.telecover_data['dev'] = {}
-        for ch in mc.TC_CHANNELS:
-            for sector in self.telecover_data['used_data_sectors']:
+        for sector in self.telecover_data['used_data_sectors']:
+            self.telecover_data['dev'][sector] = {}
+            for ch in mc.TC_CHANNELS:
                 sector_data = self.telecover_data['sm_norm_signals'][sector][ch]
                 mean = self.telecover_data['mean'][ch]
-                self.telecover_data['dev'][ch] = ( sector_data - mean) / mean
+                data = ( sector_data - mean) / mean
+                data[np.where(np.isinf(data))[0]] = np.nan
+                self.telecover_data['dev'][sector][ch] = data
 
         # for each channel and each sector: calculate ratio to mean
         self.telecover_data['ratio'] = {}
-        for ch in mc.TC_CHANNELS:
-            for sector in self.telecover_data['used_data_sectors']:
+        for sector in self.telecover_data['used_data_sectors']:
+            self.telecover_data['ratio'][sector] = {}
+            for ch in mc.TC_CHANNELS:
                 sector_data = self.telecover_data['sm_norm_signals'][sector][ch]
                 mean = self.telecover_data['mean'][ch]
-                self.telecover_data['ratio'][ch] = sector_data / mean
+                data = sector_data / mean
+                data[np.where(np.isinf(data))[0]] = np.nan
+                self.telecover_data['ratio'][sector][ch] = data
 
         # for each channel: calculate RMSD
         self.telecover_data['RMSD'] = {}
         for ch in mc.TC_CHANNELS:
             data = np.zeros(points_smooth)
             for sector in self.telecover_data['used_data_sectors']:
-                data = data + np.square(self.telecover_data['dev'][ch])
+                data = data + np.square(self.telecover_data['dev'][sector][ch])
             self.telecover_data['RMSD'][ch] = data / len(self.telecover_data['used_data_sectors'])
 
         # for each sector: calculate signal ratios
         self.telecover_data['ratios'] = {}
-        for r in mc.TC_RATIOS:
-            data = np.array([])
-            for sector in self.telecover_data['used_data_sectors']:
-                self.telecover_data['ratios'][sector] = {}
+        for sector in self.telecover_data['used_data_sectors']:
+            self.telecover_data['ratios'][sector] = {}
+            for r in mc.TC_RATIOS:
                 # calc ratio for each sector
                 nom_data   = self.telecover_data['sm_norm_signals'][sector][mc.TC_NOMINATORS[r]]
                 denom_data = self.telecover_data['sm_norm_signals'][sector][mc.TC_DENOMINATORS[r]]
-                self.telecover_data['ratios'][sector][mc.TC_RATIO_NAMES[r]] = nom_data/ denom_data
+                ratio = nom_data/ denom_data
+                ratio[np.where(np.isinf(ratio))[0]] = np.nan
+                self.telecover_data['ratios'][sector][mc.TC_RATIO_NAMES[r]] = ratio
                 # collect data for average of all sectors
+
+        # calc average of all sectors
+        for r in mc.TC_RATIOS:
+            data = np.array([])
+            for sector in self.telecover_data['used_data_sectors']:
                 data = np.append(data, self.telecover_data['ratios'][sector][mc.TC_RATIO_NAMES[r]])
-            # calc average of all sectors
             data = data.reshape(points_smooth, len(self.telecover_data['used_data_sectors']))
             self.telecover_data['mean'][mc.TC_RATIO_NAMES[r]] = np.average(data, axis = 1)
 
-        # plot range corrected signals
-        for r in range(2):
-            fig, axes = plt.subplots(nrows=3, ncols=2, sharex=True, sharey=True, figsize=(8.2, 11.6))
+            # calc deviation of signal ratios from their mean
+            mean = self.telecover_data['mean'][mc.TC_RATIO_NAMES[r]]
+            for sector in self.telecover_data['used_data_sectors']:
+                sector_data = self.telecover_data['ratios'][sector][mc.TC_RATIO_NAMES[r]]
+                dev = (sector_data - mean) / mean
+                dev[np.where(np.isinf(dev))[0]] = np.nan
+                self.telecover_data['ratios'][sector][mc.TC_RATIO_NAMES[r] + '_dev'] = dev
 
-            ymax = 0
-            for ch in mc.TC_CHANNELS:
-                for sector in ['north', 'east', 'south', 'west', 'north2']:
-                    if sector in self.telecover_data['used_sectors']:
-                        ymax = max(ymax, max(self.telecover_data['sm_rc_signals'][sector][ch][1:MAX_PLOT_BIN[r]]))
-
-            for ch in mc.TC_CHANNELS:
-                prow = int(ch / 2)
-                pcol = ch % 2
-
-                for sector in ['north', 'east', 'south', 'west', 'north2']:
-                    if sector in self.telecover_data['used_sectors']:
-                        axes[prow, pcol].plot(range_smooth[0:MAX_PLOT_BIN[r]],
-                                              self.telecover_data['sm_rc_signals'][sector][ch][0:MAX_PLOT_BIN[r]] ,
-                                              color=mc.TC_COLORS[sector], label=sector)
-
-                axes[prow, pcol].set_title(CHANNEL_NAMES[ch], fontsize=10, verticalalignment='bottom')
-                axes[prow, pcol].grid()
-
-            for prow in range(3):
-                axes[prow, 0].set_ylabel('rc signal')
-                for pcol in [0, 1]:
-                    axes[prow, pcol].set_xlim((0, MAX_PLOT_HEIGHT[r]))
-                    axes[prow, pcol].set_ylim((0, ymax))
-
-            for pcol in [0, 1]:
-                axes[2, pcol].set_xlabel('height, m')
-
-            plt.subplots_adjust(wspace=0.05, hspace=0.15)  # right = 0.83
-            plt.figtext(0.3, 0.96, LIDAR + ' telecover ' + tc_date.strftime('%d.%m.%Y'), fontsize=14)
-            axes[0, 0].legend(bbox_to_anchor=(0., 1.1, 2.05, .102), loc=3, ncol=6, mode="expand", borderaxespad=0.)
-
-            plt.savefig(
-                os.path.join(OUT_PATH, 'telecover_rcs_' + RANGE_ID[r] + '_' + tc_date.strftime('%Y%m%d') + '.png'))
-            plt.close()
-
+        self.plot_tc_output_per_channel(self.telecover_data['sm_rc_signals'], 0, 100, 'rc_signal', '')
+        self.plot_tc_output_per_channel(self.telecover_data['sm_norm_signals'], 0, 100, 'norm_signal',  ' normalized: ' + str(mc.TC_NORMALIZATION_RANGE) + 'm')
+        self.plot_tc_output_per_channel(self.telecover_data['dev'], 10, 90, 'deviations', ' normalized: ' + str(mc.TC_NORMALIZATION_RANGE) + 'm')
+        self.plot_tc_output_per_channel(self.telecover_data['ratio'], 10, 90, 'ratio_to_mean', ' normalized: ' + str(mc.TC_NORMALIZATION_RANGE) + 'm')
+        self.plot_tc_output_per_ratio()
 
     def read_signal(self, sig_filename):
         if sig_filename.endswith('.zip'):
