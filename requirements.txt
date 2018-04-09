@@ -4,3 +4,4 @@ scipy
 pyqtgraph
 hdf5
 qtpy
+matplotlib

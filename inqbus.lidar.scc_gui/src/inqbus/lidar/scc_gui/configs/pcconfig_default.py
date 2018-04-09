@@ -29,6 +29,8 @@ RESULT_DATA_PATH = os.path.join(BASE_PATH, 'res_data')
 # the final, quality controlled optical data (b and e files) are written into this directory
 RESULT_EXPORT_PATH = os.path.join(BASE_PATH, 'res_exported')
 
+# this is the path where plots and ASCII files of telecover analysis are written to
+TELECOVER_PATH = 'G:\\dokumentation\\RALPH_QAtests'
 
 # log files are written into this directory
 SYS_LOG_PATH = os.path.join(BASE_PATH, 'gui_log')
