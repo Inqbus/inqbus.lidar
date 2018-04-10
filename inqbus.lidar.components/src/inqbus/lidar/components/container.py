@@ -549,26 +549,33 @@ class Measurement(object):
 
         for r in range(len(mc.TC_RANGE_ID)):
             max_plot_bin = np.where(self.telecover_data['range_smooth'] > mc.TC_MAX_PLOT_HEIGHT[r])[0][0]
-            fig, axes = plt.subplots(nrows=4, ncols=2, sharex=True, sharey=True, figsize=(8.2, 11.6))
+            min_plot_bin = np.where(self.telecover_data['range_smooth'] > 0)[0][0]
+
+            fig, axes = plt.subplots(nrows=len(mc.TC_RATIOS), ncols=2, sharex=True, figsize=(8.2, 11.6))
 #            fig, axes = plt.subplots(nrows=4, ncols=2, sharex=True, figsize=(8.2, 11.6))
 
-            ymax = 0
-            ymin = 1e6
-            for ratio in mc.TC_RATIOS:
-                r_name = mc.TC_RATIO_NAMES[ratio]
-                for sector in self.telecover_data['used_sectors']:
-                    ymax = max(ymax, np.nanpercentile(ratio_data[sector][r_name][1: max_plot_bin], 100) )
-                    ymin = min(ymin, np.nanpercentile(ratio_data[sector][r_name][1: max_plot_bin], 0))
 
             for ratio in mc.TC_RATIOS:
                 r_name = mc.TC_RATIO_NAMES[ratio]
                 prow = ratio
 
                 pcol = 0
+
+                ymax = 0
+                ymin = 1e6
+
                 for sector in self.telecover_data['used_sectors']:
                     axes[prow, pcol].plot(self.telecover_data['range_smooth'][0: max_plot_bin],
                                           ratio_data[sector][r_name][0: max_plot_bin],
                                           color=mc.TC_COLORS[sector], label=sector)
+                    ymax = max(ymax, np.nanpercentile(ratio_data[sector][r_name][min_plot_bin : max_plot_bin], 97))
+                    ymin = min(ymin, np.nanpercentile(ratio_data[sector][r_name][min_plot_bin : max_plot_bin], 7))
+
+                axes[prow, pcol].plot(self.telecover_data['range_smooth'][0: max_plot_bin],
+                                      self.telecover_data['mean'][r_name][0: max_plot_bin],
+                                      color='grey', linestyle='--', label='mean')
+
+                axes[prow, pcol].set_ylim((0, ymax))
                 axes[prow, pcol].set_title('normalized ' + r_name, fontsize=10, verticalalignment='bottom')
                 axes[prow, pcol].grid()
 
@@ -580,15 +587,15 @@ class Measurement(object):
                 axes[prow, pcol].set_title('deviation ' + r_name, fontsize=10, verticalalignment='bottom')
                 axes[prow, pcol].grid()
 
-            for prow in range(4):
+            for prow in range(len(mc.TC_RATIOS)):
                 axes[prow, 0].set_ylabel('signal ratio')
-#                axes[prow, 0].set_ylim((ymin, ymax))
+                #axes[prow, 0].set_ylim((ymin, ymax))
                 axes[prow, 1].set_ylim((-.3, .3))
                 for pcol in [0, 1]:
                     axes[prow, pcol].set_xlim((0, mc.TC_MAX_PLOT_HEIGHT[r]))
 
             for pcol in [0, 1]:
-                axes[3, pcol].set_xlabel('height, m')
+                axes[len(mc.TC_RATIOS)-1, pcol].set_xlabel('height, m')
 
             plt.subplots_adjust(wspace=0.15, hspace=0.15)  # right = 0.83
             plt.figtext(0.1, 0.96,
@@ -613,14 +620,16 @@ class Measurement(object):
         # plot data in near range (r=0) and far range(r=1)
         for r in range(len(mc.TC_RANGE_ID)):
             max_plot_bin = np.where(self.telecover_data['range_smooth'] > mc.TC_MAX_PLOT_HEIGHT[r])[0][0]
+            min_plot_bin = np.where(self.telecover_data['range_smooth'] > 0)[0][0]
+
             fig, axes = plt.subplots(nrows=3, ncols=2, sharex=True, sharey=True, figsize=(8.2, 11.6))
 
             ymax = 0
             ymin = 1e6
             for ch in mc.TC_CHANNELS:
                 for sector in self.telecover_data['used_sectors']:
-                    ymax = max(ymax, np.nanpercentile(data[sector][ch][1: max_plot_bin], max_percentile) )
-                    ymin = min(ymin, np.nanpercentile(data[sector][ch][1: max_plot_bin], min_percentile))
+                    ymax = max(ymax, np.nanpercentile(data[sector][ch][min_plot_bin+1: max_plot_bin], max_percentile) )
+                    ymin = min(ymin, np.nanpercentile(data[sector][ch][min_plot_bin+1: max_plot_bin], min_percentile))
 
             if ~np.isnan(fixed_axis_range[0]):
                 ymin = fixed_axis_range[0]
@@ -778,15 +787,14 @@ class Measurement(object):
                 ratio = nom_data/ denom_data
                 ratio[np.where(np.isinf(ratio))[0]] = np.nan
                 self.telecover_data['ratios'][sector][mc.TC_RATIO_NAMES[r]] = ratio
-                # collect data for average of all sectors
 
         for r in mc.TC_RATIOS:
             # calc average of all sectors
             data = np.array([])
             for sector in self.telecover_data['sectors_for_avrg']:
                 data = np.append(data, self.telecover_data['ratios'][sector][mc.TC_RATIO_NAMES[r]])
-            data = data.reshape(points_smooth, len(self.telecover_data['sectors_for_avrg']))
-            self.telecover_data['mean'][mc.TC_RATIO_NAMES[r]] = np.average(data, axis = 1)
+            data = data.reshape(len(self.telecover_data['sectors_for_avrg']), points_smooth)
+            self.telecover_data['mean'][mc.TC_RATIO_NAMES[r]] = np.average(data, axis = 0)
 
             # calc deviation of signal ratios from their mean
             mean = self.telecover_data['mean'][mc.TC_RATIO_NAMES[r]]
