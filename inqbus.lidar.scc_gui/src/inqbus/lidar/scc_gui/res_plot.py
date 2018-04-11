@@ -197,7 +197,7 @@ class ResultData(object):
         file_end = datetime.strptime(str(f.StartDate) + str(f.StopTime_UT).zfill(6), '%Y%m%d%H%M%S')
         self.data['start_time'] = min(self.data['start_time'], file_start)
         self.data['end_time'] = max(self.data['end_time'], file_end)
-        self.data['Comments'] = str(f.Comments)
+        self.data['Comments'] = f.Comments.decode("utf-8")
 
         alt = f.variables['Altitude'].data[:]
         alt[np.where(alt > 1E30)[0]] = np.nan
