@@ -44,90 +44,73 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
             self.height_axis.range[0],
             self.measurement.z_axis.m_2_bin(mc.MAX_PLOT_ALTITUDE) * 1.0)
 
+        self.create_menu()
+
+    # Actions for the menu
+    def create_actions(self):
+        """
+        Here a list of Actions is provided for the menu:
+            util.createMappedAction(
+                mapper,
+                None,
+                "&", self,
+                None,
+                "export as quality controlled nc files"),
+        Creates an action called "export as quality controlled nc files" in the menu which calls the "export as quality controlled nc files" function on the currently active instance
+        """
+        self.mapper = QtCore.QSignalMapper()
+        self.mapper.mapped[str].connect(self.mappedQuicklookAction)
+        self._menu_actions = [
+
+            util.createMappedAction(
+                self.mapper,
+                None,
+                "Analyse Telecover", self,
+                QtGui.QKeySequence(),
+                "analyse_telecover"),
+
+            # util.createMappedAction(
+            #     self.mapper,
+            #     None,
+            #     "&was anderes wird passieren", self,
+            #     QtGui.QKeySequence(),
+            #     "was_anderes"),
+        ]
+
+    @QtCore.pyqtSlot(str)
+    def mappedQuicklookAction(self, method_name):
+        """
+        All menu actions of the quicklook menu are mapped by the Signal Mapper to this function.
+        Here the currently active quicklook instance will be derived and the function name (String) of the action will be
+        called on this instance.
+        """
+        # find currently active quicklook instance
+        active_win = util.get_active_MDI_win()
+        # call the function of the action on the instance
+        getattr(active_win, str(method_name))()
+
+    # Main menu for profile plot
+    def create_menu(self):
+        """
+        Contructs the menu and populates it with the actions defined in create_actions
+        :return:
+        """
+        self.create_actions()
+        self._menu = QtGui.QMenu('quicklook plot')
+        for action in self._menu_actions:
+            self._menu.addAction(action)
+        menuBar = util.get_main_win().menuBar()
+        for action in menuBar.actions():
+            if action.menu().title() == "quicklook plot":
+                menuBar.removeAction(action)
+        menuBar.addMenu(self._menu)
+
     def layout(self):
         # Internal Layout for the contour and the profile plot
         self.contour_profile_layout = self.addLayout(
             colspan=2, border=mc.PLOT_BORDER_COLOR)
         # contour and profile goes to the left top.
         self.addItem(self.contour_profile_layout, 0, 0)
-
-    # # Menu setup
-    # # ========================================================================================================================
-    #
-    # # Actions for the menu
-    # def create_actions(self):
-    #     """
-    #     Here a list of Actions is provided for the menu:
-    #         util.createMappedAction(
-    #             mapper,
-    #             None,
-    #             "&", self,
-    #             None,
-    #             "tu_was"),
-    #     Creates an action called "tu_was" in the menu which calls the "tu_was" function on the currently active instance
-    #     """
-    #     self.mapper = QtCore.QSignalMapper()
-    #     self.mapper.mapped[str].connect(self.mappedQuicklookAction)
-    #     self._actions = [
-    #
-    #         util.createMappedAction(
-    #             self.mapper,
-    #             None,
-    #             "&tu was!", self,
-    #             QtGui.QKeySequence(),
-    #             "etwas_geschieht"),
-    #
-    #         util.createMappedAction(
-    #             self.mapper,
-    #             None,
-    #             "&was anderes wird passieren", self,
-    #             QtGui.QKeySequence(),
-    #             "was_anderes"),
-    #     ]
-    #
-    # # Main menu for quicklooks
-    # def create_menu(self):
-    #     """
-    #     Contructs the menu and populates it with the actions defined in create_actions
-    #     :return:
-    #     """
-    #     self.create_actions()
-    #     self._menu = QtGui.QMenu('Quicklook')
-    #     for action in self._actions:
-    #         self._menu.addAction(action)
-    #     menuBar = util.get_main_win().menuBar()
-    #     for action in menuBar.actions():
-    #         if action.menu().title() == "Quicklook":
-    #             menuBar.removeAction(action)
-    #     menuBar.addMenu(self._menu)
-    #
-    # @QtCore.pyqtSlot(str)
-    # def mappedQuicklookAction(self, method_name):
-    #     """
-    #     All menu actions of the quicklook menu are mapped by the Signal Mapper to this function.
-    #     Here the currently active quicklook instance will be derived and the function name (String) of the action will be
-    #     called on this instance.
-    #     """
-    #     # find currently active quicklook instance
-    #     active_win = util.get_active_MDI_win()
-    #     # call the function of the action on the instance
-    #     getattr(active_win, str(method_name))()
-    #
-    # # Menu Handler
-    # # ==================================================================================================================
-    # def etwas_geschieht(self):
-    #     QtGui.QMessageBox.about(
-    #         self,
-    #         "Es ist was geschehen",
-    #         "Hier passiertgerade was in Fenster %s" %
-    #         self.title)
-    #
-    # def was_anderes(self):
-    #     QtGui.QMessageBox.about(
-    #         self,
-    #         "Es ist was geschehen",
-    #         "Was anders ist in Fenster %s geschehen" %
-    #         self.title)
 
     # Plot specific things
     # ==================================================================================================================
@@ -359,3 +342,6 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
     def updateIsocurve(self):
         if hasattr(self, 'iso'):
             self.iso.setLevel(self.isoLine.value())
+
+    def analyse_telecover(self):
+        self.measurement.analyse_telecover()

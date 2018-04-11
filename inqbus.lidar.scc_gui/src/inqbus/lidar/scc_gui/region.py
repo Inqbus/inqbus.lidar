@@ -67,8 +67,8 @@ class RegionMenu(QtGui.QMenu):
 #        self.telecover_set_as_dark = self.addAction('telecover - set as dark')
 #        self.telecover_set_as_dark.triggered.connect(self.view.telecover_set_as_dark)
 
-        self.analyse_telecover = self.addAction('telecover - analyse')
-        self.analyse_telecover.triggered.connect(self.view.analyse_telecover)
+        # self.analyse_telecover = self.addAction('telecover - analyse')
+        # self.analyse_telecover.triggered.connect(self.view.analyse_telecover)
 
 
 class RegionDialog(QtGui.QDialog):
@@ -340,6 +340,3 @@ class MenuLinearRegionItem(LinearRegionItem):
     def telecover_set_as_dark(self):
         self.update()
         self.plot.set_telecover_region(self.getRegion(), 'dark')
-
-    def analyse_telecover(self):
-        self.plot.measurement.analyse_telecover()
