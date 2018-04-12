@@ -65,7 +65,7 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
             util.createMappedAction(
                 self.mapper,
                 None,
-                "Analyse Telecover", self,
+                "Analyse telecover measurement", self,
                 QtGui.QKeySequence(),
                 "analyse_telecover"),
 
@@ -89,19 +89,19 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
         # call the function of the action on the instance
         getattr(active_win, str(method_name))()
 
-    # Main menu for profile plot
+    # Main menu for quicklook plot
     def create_menu(self):
         """
         Contructs the menu and populates it with the actions defined in create_actions
         :return:
         """
         self.create_actions()
-        self._menu = QtGui.QMenu('quicklook plot')
+        self._menu = QtGui.QMenu('QA measurements')
         for action in self._menu_actions:
             self._menu.addAction(action)
         menuBar = util.get_main_win().menuBar()
         for action in menuBar.actions():
-            if action.menu().title() == "quicklook plot":
+            if action.menu().title() == "QA measurements":
                 menuBar.removeAction(action)
         menuBar.addMenu(self._menu)
 
@@ -344,4 +344,12 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
             self.iso.setLevel(self.isoLine.value())
 
     def analyse_telecover(self):
-        self.measurement.analyse_telecover()
+        if self.measurement.telecover_data['profiles'] != {}:
+            self.measurement.analyse_telecover()
+            QtGui.QMessageBox.about(
+                self, "Done", "telecover measurement was analyzed")
+        else:
+            QtGui.QMessageBox.about(
+                self, "Error", "no telecover sector measurements defined")
+
+
