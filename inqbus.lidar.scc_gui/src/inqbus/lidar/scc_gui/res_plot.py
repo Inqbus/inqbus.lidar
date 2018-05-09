@@ -664,7 +664,7 @@ class ResultPlotViewBox(pg.ViewBox):
         self.plot_name = plot_name
         self.regions = {}
         self.data = self.plot_parent.mes_data
-        self.ctrl = []
+        self.ctrl = {}
 
         super(ResultPlotViewBox, self).__init__()
 
@@ -702,11 +702,13 @@ class ResultPlotViewBox(pg.ViewBox):
             a = menu.addMenu("%s Axis" % axis)
             a.addAction(sub_a)
 
-            self.ctrl.append(ui)
+            self.ctrl[axis] = ui
 
             connects = [
                 (ui.minText.editingFinished, 'MinTextChanged'),
                 (ui.maxText.editingFinished, 'MaxTextChanged'),
+                (ui.minText.returnPressed, 'MinTextChanged'),
+                (ui.maxText.returnPressed, 'MaxTextChanged')
             ]
 
             for sig, fn in connects:
@@ -718,8 +720,8 @@ class ResultPlotViewBox(pg.ViewBox):
 
         self.updateStates()
         self.sigStateChanged.connect(self.viewStateChanged)
-        self.sigRangeChanged.connect(self.viewStateChanged)
-        self.sigRangeChangedManually.connect(self.viewStateChanged)
+        # self.sigRangeChanged.connect(self.viewStateChanged)
+        # self.sigRangeChangedManually.connect(self.viewStateChanged)
 
         return menu
 
@@ -729,22 +731,35 @@ class ResultPlotViewBox(pg.ViewBox):
     def updateStates(self):
         state = self.getState(copy=False)
 
-        for i in [0, 1]:  # x, y
-            tr = state['targetRange'][i]
+        for i in 'XY':  # x, y
+            index = 'XY'.find(i)
+            tr = state['targetRange'][index]
             self.ctrl[i].minText.setText("%0.5g" % tr[0])
             self.ctrl[i].maxText.setText("%0.5g" % tr[1])
 
     def xMinTextChanged(self):
-        self.setLimits(xMin=float(self.ctrl[0].minText.text()))
+        try:
+            self.setLimits(xMin=float(self.ctrl['X'].minText.text()))
+        except ValueError:
+            self.updateStates()
 
     def xMaxTextChanged(self):
-        self.setLimits(xMax=float(self.ctrl[0].maxText.text()))
+        try:
+            self.setLimits(xMax=float(self.ctrl['X'].maxText.text()))
+        except ValueError:
+            self.updateStates()
 
     def yMinTextChanged(self):
-        self.setLimits(yMin=float(self.ctrl[0].minText.text()))
+        try:
+            self.setLimits(yMin=float(self.ctrl['Y'].minText.text()))
+        except ValueError:
+            self.updateStates()
 
     def yMaxTextChanged(self):
-        self.setLimits(yMax=float(self.ctrl[0].maxText.text()))
+        try:
+            self.setLimits(yMax=float(self.ctrl['Y'].maxText.text()))
+        except ValueError:
+            self.updateStates()
 
 #    def export_data(self):
 #        self.data.export()
