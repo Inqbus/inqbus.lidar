@@ -3,7 +3,7 @@ import functools
 import os
 import traceback as tb
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from math import log
 from collections import OrderedDict
 
@@ -15,6 +15,7 @@ from pyqtgraph.graphicsItems.LegendItem import ItemSample
 from qtpy import QtGui
 from pyqtgraph.Qt import QtCore
 from scipy.io import netcdf
+from netCDF4 import Dataset
 
 from inqbus.lidar.scc_gui import util, PROJECT_PATH
 from inqbus.lidar.scc_gui.axis import HeightAxis, DataAxis
@@ -183,16 +184,64 @@ class ResultData(object):
 
         return obj
 
-    def read_nc_file(self, file_name):
-        try:
-            f = netcdf.netcdf_file(file_name, 'r', False, 1)
-        except TypeError:
-            logger.error('%s is no valid file.' % file_name)
-            return
-        except IsADirectoryError:
-            logger.error('%s is no valid file.' % file_name)
-            return
+    def time_from_nc(self, nc_timestamp):
+        return datetime(1970,1,1) + timedelta(seconds=int(nc_timestamp))
 
+    def read_nc4_file(self, f):
+        file_start = self.time_from_nc(f.variables['time_bounds'][0, 0])
+        file_end = self.time_from_nc(f.variables['time_bounds'][0, 1])
+        self.data['start_time'] = min(self.data['start_time'], file_start)
+        self.data['end_time'] = max(self.data['end_time'], file_end)
+        self.data['Comments'] = f.comments#.decode("utf-8")
+
+        alt = f.variables['altitude'][:]
+        alt[np.where(alt > 1E30)[0]] = np.nan
+        alt = alt - f.variables['station_altitude'][0]
+
+        self.data['max_alt'] = max(self.data['max_alt'], max(alt))
+
+        cloud_data = np.ma.masked_array(f.variables['cloud_mask'][0,0,:])
+        cloud_data.mask = (cloud_data > 5)
+        cloud_data[np.where(cloud_data > 0)[0]] = 2 # this tool can plot only 1 type of clouds (cirrus = 2). Thus, all flagged cloud bins are set to cirrus
+
+        res_data = f.variables['vertical_resolution'][0,0,:]
+
+        global_attributes = f.ncattrs()
+        ftype = f.filepath().split('.')[1]
+
+        for v in mc.RES_VAR_NAMES_CF[ftype]:
+            if v in f.variables.keys():
+
+                if v in mc.RES_VAR_NAME_ALIAS.keys():
+                    va = mc.RES_VAR_NAME_ALIAS[v]
+                else:
+                    va = v
+
+                dtype = mc.RES_VAR_NAMES_CF[ftype][v]
+
+                if not ('single' in self.data[dtype].keys()):
+                    self.data[dtype]['single'] = []
+
+                vdata = f.variables[v][0,0,:]
+                vdata[np.where(vdata > 1E30)[0]] = np.nan
+
+                error_var_name = 'error_' + v
+                edata = f.variables[error_var_name][0,0,:]
+                edata[np.where(edata > 1E30)[0]] = np.nan
+
+                self.data[dtype]['single'].append({'alt': alt,
+                                                   'data': vdata ,
+                                                   'error': edata ,
+                                                   'cloud': cloud_data,
+                                                   'vert_res': res_data})
+                self.data[dtype]['exists'] = True
+
+                # copy global (file) attributes
+                self.data[dtype]['attributes'] = global_attributes.copy()
+
+        f.close()
+
+    def read_nc3_file(self, f):
         file_start = datetime.strptime(str(f.StartDate) + str(f.StartTime_UT).zfill(6), '%Y%m%d%H%M%S')
         file_end = datetime.strptime(str(f.StartDate) + str(f.StopTime_UT).zfill(6), '%Y%m%d%H%M%S')
         self.data['start_time'] = min(self.data['start_time'], file_start)
@@ -210,7 +259,7 @@ class ResultData(object):
         self.data['max_alt'] = max(self.data['max_alt'], max(alt))
 
         global_attributes = f._attributes
-        ftype = file_name.split('.')[-1] # file type
+        ftype = f.filename.split('.')[-1] # file type
 
         for v in mc.RES_VAR_NAMES[ftype].keys():
             if v in f.variables.keys():
@@ -243,6 +292,97 @@ class ResultData(object):
 
         f.close()
 
+    def read_nc_file(self, file_name):
+        nc_version = 0
+        try:
+            f = netcdf.netcdf_file(file_name, 'r', False, 1)
+            nc_version = 3
+        except TypeError:
+            try:
+                f = Dataset(file_name, 'r', format="NETCDF4")
+                nc_version = 4
+            except:
+                logger.error('%s is no valid file.' % file_name)
+                return
+        except IsADirectoryError:
+            logger.error('%s is no valid file.' % file_name)
+            return
+
+        if nc_version == 3:
+            self.read_nc3_file(f)
+
+        if nc_version == 4:
+            self.read_nc4_file(f)
+
+    def calc_mean_data(self, single_profiles):
+        min_start = 15000
+        min_start_idx = np.nan
+        max_len = 0
+        for p in range(len(single_profiles)):
+            while np.isnan(single_profiles[p]['alt'][0]):
+                single_profiles[p]['alt'] = np.delete(single_profiles[p]['alt'], 0)
+                single_profiles[p]['data'] = np.delete(single_profiles[p]['data'], 0)
+                single_profiles[p]['error'] = np.delete(single_profiles[p]['error'], 0)
+                single_profiles[p]['cloud'] = np.delete(single_profiles[p]['cloud'], 0)
+                single_profiles[p]['vert_res'] = np.delete(single_profiles[p]['vert_res'], 0)
+
+            if single_profiles[p]['alt'][0] < min_start:
+                min_start = single_profiles[p]['alt'][0]
+                min_start_idx = p
+            max_len = max(max_len, len(single_profiles[p]['alt']))
+
+        data_arr = []
+        err_arr = []
+        weight_arr = []
+        alt_arr = []
+        cloud_arr = []
+        vert_res_arr = []
+
+        for p in range(len(single_profiles)):
+
+            idx_shift = int(
+                np.where(single_profiles[min_start_idx]['alt'] == single_profiles[p]['alt'][0])[0])
+            fill_array = np.ones(idx_shift) * np.nan
+
+            d = np.append(fill_array, single_profiles[p]['data'])
+            # insert nans in the beginning of profile until beginning of its altitude axis fits to the one of max_start_idx
+            e = np.append(fill_array, single_profiles[p]['error'])
+            # insert nans in the beginning of profile until beginning of its altitude axis fits to the one of max_start_idx
+            w = np.abs(d / e)  # weight = 1/relative error = value/error
+            a = np.append(fill_array, single_profiles[p]['alt'])
+            c = np.append(fill_array, single_profiles[p]['cloud'])
+            v = np.append(fill_array, single_profiles[p]['vert_res'])
+
+            fill_length = max_len - len(d)  # len(single_profiles[p]['data'])
+            if fill_length < 0:
+                dd = d[:fill_length]
+                ee = e[:fill_length]
+                ww = w[:fill_length]
+                aa = a[:fill_length]
+                cc = c[:fill_length]
+                vv = v[:fill_length]
+            else:
+                fill_array = np.ones(fill_length) * np.nan
+                dd = np.append(d, fill_array)  # fill the end of profile with nans until its length is equal max_len
+                ee = np.append(e, fill_array)  # fill the end of profile with nans until its length is equal max_len
+                ww = np.append(w, fill_array)
+                aa = np.append(a, fill_array)
+                cc = np.append(c, fill_array)
+                vv = np.append(v, fill_array)
+
+            data_arr.append(dd)
+            err_arr.append(ee)
+            weight_arr.append(ww)
+            alt_arr.append(aa)
+            cloud_arr.append(cc)
+            vert_res_arr.append(vv)
+
+        return {'data': np.average(data_arr, weights=weight_arr, axis=0),
+                                    'error': np.average(err_arr, weights=weight_arr, axis=0),
+                                    'alt': np.max(alt_arr, axis=0),
+                                    'cloud': np.max(cloud_arr, axis=0),
+                                    'vert_res': np.max(vert_res_arr, axis=0)}
+
     def get_mean_profile(self):
         for dtype in mc.RES_DTYPES_FOR_MEAN_PROFILE:
             if self.data[dtype]['exists']:
@@ -255,66 +395,7 @@ class ResultData(object):
                                                 'vert_res': single_profiles[0]['vert_res']
                                                 }
                 else:
-                    min_start = 15000
-                    min_start_idx = np.nan
-                    max_len = 0
-                    for p in range(len(single_profiles)):
-                        if single_profiles[p]['alt'][0] < min_start:
-                            min_start = single_profiles[p]['alt'][0]
-                            min_start_idx = p
-                        max_len = max(max_len, len(single_profiles[p]['alt']))
-
-                    data_arr = []
-                    err_arr = []
-                    weight_arr = []
-                    alt_arr = []
-                    cloud_arr = []
-                    vert_res_arr = []
-
-                    for p in range(len(single_profiles)):
-
-                        idx_shift = int(
-                            np.where(single_profiles[min_start_idx]['alt'] == single_profiles[p]['alt'][0])[0])
-                        fill_array = np.ones(idx_shift) * np.nan
-
-                        d = np.append(fill_array, single_profiles[p]['data'])
-                             # insert nans in the beginning of profile until beginning of its altitude axis fits to the one of max_start_idx
-                        e = np.append(fill_array, single_profiles[p]['error'])
-                             # insert nans in the beginning of profile until beginning of its altitude axis fits to the one of max_start_idx
-                        w = np.abs(d/e) # weight = 1/relative error = value/error
-                        a = np.append(fill_array, single_profiles[p]['alt'])
-                        c = np.append(fill_array, single_profiles[p]['cloud'])
-                        v = np.append(fill_array, single_profiles[p]['vert_res'])
-
-                        fill_length = max_len - len(d)  # len(single_profiles[p]['data'])
-                        if fill_length < 0:
-                            dd = d[:fill_length]
-                            ee = e[:fill_length]
-                            ww = w[:fill_length]
-                            aa = a[:fill_length]
-                            cc = c[:fill_length]
-                            vv = v[:fill_length]
-                        else:
-                            fill_array = np.ones(fill_length) * np.nan
-                            dd = np.append(d, fill_array)  # fill the end of profile with nans until its length is equal max_len
-                            ee = np.append(e, fill_array)  # fill the end of profile with nans until its length is equal max_len
-                            ww = np.append(w, fill_array)
-                            aa = np.append(a, fill_array)
-                            cc = np.append(c, fill_array)
-                            vv = np.append(v, fill_array)
-
-                        data_arr.append(dd)
-                        err_arr.append(ee)
-                        weight_arr.append(ww)
-                        alt_arr.append(aa)
-                        cloud_arr.append(cc)
-                        vert_res_arr.append(vv)
-
-                    self.data[dtype]['mean'] = {'data': np.average(data_arr, weights=weight_arr, axis=0),
-                                                         'error': np.average(err_arr, weights=weight_arr, axis=0),
-                                                         'alt': np.max(alt_arr, axis=0),
-                                                         'cloud': np.max(cloud_arr, axis=0),
-                                                         'vert_res': np.max(vert_res_arr, axis=0)  }
+                    self.data[dtype]['mean'] = self.calc_mean_data(single_profiles)
                     self.data[dtype]['scale_str'] = ''
 
     def set_depol(self):
@@ -384,6 +465,7 @@ class ResultData(object):
 
             self.data[lr_type]['mean'] = {'data': data,
                                           'error': error,
+                                          'cloud': self.data[ext_type]['mean']['cloud'],
                                           'alt': self.data[ext_type]['mean']['alt'],
                                           'vert_res': self.data[ext_type]['mean']['vert_res']}
 
@@ -409,8 +491,10 @@ class ResultData(object):
             max_bin = min(len(f_source['data']) - idx_shift, len(s_source['data']))
             f_profile = f_source['data'][idx_shift: max_bin + idx_shift]
             f_error = f_source['error'][idx_shift: max_bin + idx_shift]
+            f_cloud = f_source['cloud'][idx_shift: max_bin + idx_shift]
             s_profile = s_source['data'][:max_bin]
             s_error = s_source['error'][:max_bin]
+            s_cloud = s_source['cloud'][:max_bin]
             f_alt = f_source['alt'][idx_shift: max_bin + idx_shift]
             s_alt = s_source['alt'][:max_bin]
             f_vert_res = f_source['vert_res'][idx_shift: max_bin + idx_shift]
@@ -429,27 +513,36 @@ class ResultData(object):
             f_profile = f_source['data']
             f_error = f_source['error']
             f_alt = f_source['alt']
+            f_cloud = f_source['cloud']
             s_alt = f_alt
+            s_cloud = s_source['cloud']
             f_vert_res = f_source['vert_res']
             s_vert_res = f_vert_res
 
         factor = 1 / (log(s_wl) - log(f_wl))
 
-        data = (np.log(f_profile) - np.log(s_profile)) * factor
+        if isinstance(f_profile, np.ma.MaskedArray) or isinstance(s_profile, np.ma.MaskedArray) :
+            data = (np.log(f_profile) - np.log(s_profile)) * factor
+            data[data.mask] = np.nan
+        else:
+            data = np.ma.array((np.log(f_profile) - np.log(s_profile)) * factor, mask=np.zeros(f_profile.shape))
+
         error = data[:] * np.sqrt(np.square(s_error[:] / s_profile[:]) + \
                                   np.square(f_error[:] / f_profile[:]))
+        error[error.mask] = np.nan
 
         target['mean'] = {'data': data,
                           'error': error,
+                          'cloud': np.max([f_cloud, s_cloud], axis = 0),
                           'alt': np.max([f_alt, s_alt ], axis = 0),
                           'vert_res': np.max([f_vert_res, s_vert_res ], axis = 0)}
         target['exists'] = True
 
     def set_axes_limits(self):
-        if mc.AUTO_SCALE:
-            for plot_type in mc.PROFILES_IN_PLOT:
-                self.axis_limits[plot_type]['min'] = mc.RES_AXES_LIMITS[plot_type]['min']
-                self.axis_limits[plot_type]['max'] = mc.RES_AXES_LIMITS[plot_type]['max']
+        for plot_type in mc.PROFILES_IN_PLOT:
+            self.axis_limits[plot_type]['min'] = mc.RES_AXES_LIMITS[plot_type]['min']
+            self.axis_limits[plot_type]['max'] = mc.RES_AXES_LIMITS[plot_type]['max']
+            if mc.INI_AUTO_SCALE:
                 for dtype in mc.PROFILES_IN_PLOT[plot_type]:
                     if self.data[dtype]['exists']:
                         profile = self.data[dtype]['mean']['data']
@@ -1004,8 +1097,11 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
-                if cloud is None and 'cloud' in profile:
-                    cloud = profile
+                if 'cloud' in profile:
+                    if cloud is None:
+                        cloud = profile
+                    else:
+                        cloud = self.mes_data.calc_mean_data([cloud, profile])
 
         if cloud is not None:
             self.add_cloud_to_plot(cloud, self.bsc_plot, 'bsc_plot')
@@ -1047,8 +1143,11 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
-                if cloud is None and 'cloud' in profile:
-                    cloud = profile
+                if 'cloud' in profile:
+                    if cloud is None:
+                        cloud = profile
+                    else:
+                        cloud = self.mes_data.calc_mean_data([cloud, profile])
 
         if cloud is not None:
             self.add_cloud_to_plot(cloud, self.ext_plot, 'ext_plot')
@@ -1089,8 +1188,11 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
-                if cloud is None and 'cloud' in profile:
-                    cloud = profile
+                if 'cloud' in profile:
+                    if cloud is None:
+                        cloud = profile
+                    else:
+                        cloud = self.mes_data.calc_mean_data([cloud, profile])
 
         if cloud is not None:
             self.add_cloud_to_plot(cloud, self.lr_plot, 'lr_plot')
@@ -1129,8 +1231,11 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
-                if cloud is None and 'cloud' in profile:
-                    cloud = profile
+                if 'cloud' in profile:
+                    if cloud is None:
+                        cloud = profile
+                    else:
+                        cloud = self.mes_data.calc_mean_data([cloud, profile])
 
         if cloud is not None:
             self.add_cloud_to_plot(cloud, self.depol_plot, 'depol_plot')
@@ -1174,8 +1279,11 @@ class ResultPlot(pg.GraphicsLayoutWidget):
                     logger.error('Could not plot %s.' % dtype)
                     logger.error("Traceback: %s" % tb.format_exc())
 
-                    if cloud is None and 'cloud' in profile:
+                if 'cloud' in profile:
+                    if cloud is None:
                         cloud = profile
+                    else:
+                        cloud = self.mes_data.calc_mean_data([cloud, profile])
 
         if cloud is not None:
             self.add_cloud_to_plot(cloud, self.angstroem_plot, 'angstroem_plot')

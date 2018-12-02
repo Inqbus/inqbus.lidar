@@ -1055,10 +1055,11 @@ class Measurement(object):
 
         angle_var[0] = self.z_axis.header.zenith_angle
 
+        #value = 0 -> standard atmosphere, 1 -> sounding, 2 -> temp from model (by SCC)
         if self.sounding:
             mol_calc_var.assignValue(1)
         else:
-            mol_calc_var.assignValue(0)
+            mol_calc_var.assignValue(2)
 
         pres_var.assignValue(self.header.pressure)
         temp_var.assignValue(self.header.temperature)

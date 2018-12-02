@@ -9,6 +9,14 @@ RES_VAR_NAMES = {'b355': {'Backscatter': 'b355', 'VolumeDepolarization': 'vldr35
              'e532': {'Backscatter': 'e532bsc', 'Extinction': 'e532'},
              }
 
+RES_VAR_NAMES_CF = {
+    'b355': {'backscatter': 'b355', 'volume_depolarization': 'vldr355', 'particle_depolarization': 'pldr355'},
+    'b532': {'backscatter': 'b532', 'volume_depolarization': 'vldr532', 'particle_depolarization': 'pldr532'},
+    'b1064': {'backscatter': 'b1064'},
+    'e355': {'backscatter': 'e355bsc', 'extinction': 'e355'},
+    'e532': {'backscatter': 'e532bsc', 'extinction': 'e532'},
+    }
+
 VARIABLE_ATTRIBUTES = { 'Altitude': {'long_name': "Height above sea level",
                                      'units': "m"},
                         'VerticalResolution': {'long_name': "effective vertical resolution according to Pappalardo et al., appl. opt. 2004",
@@ -31,7 +39,12 @@ VARIABLE_ATTRIBUTES = { 'Altitude': {'long_name': "Height above sea level",
                         'ErrorParticleDepolarization': {'long_name': "absolute error of ParticleDepolarization"},
                         }
 
-RES_VAR_NAME_ALIAS = {'VolumeDepol': 'VolumeDepolarization', 'ParticleDepol': 'ParticleDepolarization'}
+RES_VAR_NAME_ALIAS = {'VolumeDepol': 'VolumeDepolarization',
+                      'ParticleDepol': 'ParticleDepolarization',
+                  'volume_depolarization': 'VolumeDepol',
+                  'particle_depolarization': 'ParticleDepol',
+                  'backscatter': 'Backscatter',
+                  'extinction': 'Extinction',}
 
 # scale_factor us used for plotting: data_in_plot = data_in_ncfile * scale_factor
 RES_DATA_SETTINGS = {'b355':{'color':'b', 'exists':False, 'scale_factor': 1.0E6},
@@ -64,11 +77,12 @@ ANGSTROEM_CALCULATIONS = {'aeb_uv_vis': {'profile_1': 'b355', 'profile_2': 'b532
 # if plots should be scaled automatically (AUTO_SCALE = True), axes are scaled to the values with RES_AXES_LIMITS as initial values
 # if plots should not be scaled automatically (AUTO_SCALE = False), axes are scaled according to RES_AXES_LIMITS
 AUTO_SCALE = True
-RES_AXES_LIMITS = {'Backscatter': {'min':-.01, 'max':.1, 'min_percentile':0, 'max_percentile':100},
-               'Extinction': {'min':-5, 'max':50, 'min_percentile':0, 'max_percentile':100},
-               'lidar_ratio': {'min':-20, 'max':200, 'min_percentile':10, 'max_percentile':90},
-               'angstroem': {'min':-1., 'max':3., 'min_percentile':5, 'max_percentile':95},
-               'Depol': {'min':-.001, 'max':.01, 'min_percentile':5, 'max_percentile':95},
+INI_AUTO_SCALE = False
+RES_AXES_LIMITS = {'Backscatter': {'min':-.5, 'max':5, 'min_percentile':0, 'max_percentile':100},
+               'Extinction': {'min':-20, 'max':150, 'min_percentile':0, 'max_percentile':100},
+               'lidar_ratio': {'min':-20, 'max':120, 'min_percentile':10, 'max_percentile':90},
+               'angstroem': {'min':-2., 'max':5., 'min_percentile':5, 'max_percentile':95},
+               'Depol': {'min':-1, 'max':20, 'min_percentile':5, 'max_percentile':95},
                }
 
 PROFILES_IN_PLOT = {'Backscatter': ['b355', 'b532', 'b1064', 'e355bsc', 'e532bsc'],
