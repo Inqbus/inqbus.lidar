@@ -206,7 +206,10 @@ class ResultData(object):
 
         res_data = f.variables['vertical_resolution'][0,0,:]
 
-        global_attributes = f.ncattrs()
+        global_attributes = OrderedDict()
+        for att in f.ncattrs():
+            global_attributes[att] = f.getncattr(att)
+
         ftype = f.filepath().split('.')[1]
 
         for v in mc.RES_VAR_NAMES_CF[ftype]:
