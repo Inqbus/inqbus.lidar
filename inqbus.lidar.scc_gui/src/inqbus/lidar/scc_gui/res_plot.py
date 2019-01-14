@@ -100,9 +100,9 @@ class DataExport(object):
                         export_data['Error'+col] = data['mean']['error']
 
                         if not ('Altitude' in export_data):
-                            export_data['Altitude'] = data['mean']['alt'] + file.Altitude_meter_asl
+                            export_data['Altitude'] = data['mean']['alt'] + self.data.data['Altitude_meter_asl']
                         else:
-                            if not np.array_equal( export_data['Altitude'], (data['mean']['alt'] + file.Altitude_meter_asl) ):
+                            if not np.array_equal( export_data['Altitude'], (data['mean']['alt'] + self.data.data['Altitude_meter_asl']) ):
                                 logger.info('altitude axes for export are different in %s' % (dtype))
 
                         if not ('VerticalResolution' in export_data):
@@ -193,6 +193,7 @@ class ResultData(object):
         self.data['start_time'] = min(self.data['start_time'], file_start)
         self.data['end_time'] = max(self.data['end_time'], file_end)
         self.data['Comments'] = f.comments#.decode("utf-8")
+        self.data['Altitude_meter_asl'] = f.variables['station_altitude'][0]
 
         alt = f.variables['altitude'][:]
         alt[np.where(alt > 1E30)[0]] = np.nan
@@ -211,6 +212,10 @@ class ResultData(object):
             global_attributes[att] = f.getncattr(att)
 
         ftype = f.filepath().split('.')[1]
+
+        #for v in f.variables.keys():
+        #    dtype = mc.RES_VAR_NAMES_CF[ftype][v]
+        #    if v in mc.RES_VAR_NAMES_CF[ftype]:
 
         for v in mc.RES_VAR_NAMES_CF[ftype]:
             if v in f.variables.keys():
@@ -250,6 +255,7 @@ class ResultData(object):
         self.data['start_time'] = min(self.data['start_time'], file_start)
         self.data['end_time'] = max(self.data['end_time'], file_end)
         self.data['Comments'] = f.Comments.decode("utf-8")
+        self.data['Altitude_meter_asl'] = f.Altitude_meter_asl
 
         alt = f.variables['Altitude'].data[:]
         alt[np.where(alt > 1E30)[0]] = np.nan
