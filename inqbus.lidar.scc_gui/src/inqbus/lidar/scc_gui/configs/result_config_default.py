@@ -17,6 +17,16 @@ RES_VAR_NAMES_CF = {
     'e532': {'backscatter': 'e532bsc', 'extinction': 'e532'},
     }
 
+GLOBAL_VARS_CF = {'latitude':{},
+                  'longitude':{},
+                  'station_altitude':{},
+                  'cirrus_contamination': {},
+                  'cirrus_contamination_source': {},
+                  'atmospheric_molecular_calculation_source': {},
+                  'atmospheric_molecular_calculation_source_file': {},
+                  'zenith_angle': {},
+                  }
+
 VARIABLE_ATTRIBUTES = { 'Altitude': {'long_name': "Height above sea level",
                                      'units': "m"},
                         'VerticalResolution': {'long_name': "effective vertical resolution according to Pappalardo et al., appl. opt. 2004",
