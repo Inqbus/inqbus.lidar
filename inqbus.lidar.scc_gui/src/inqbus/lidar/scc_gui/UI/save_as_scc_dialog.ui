@@ -52,10 +52,10 @@
     </rect>
    </property>
    <property name="text">
-    <string>YYYYMMDDSSNN</string>
+    <string>YYYYMMDDSSShhmm</string>
    </property>
    <property name="maxLength">
-    <number>12</number>
+    <number>15</number>
    </property>
   </widget>
   <widget class="QLabel" name="label_2">

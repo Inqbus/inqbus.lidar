@@ -139,8 +139,11 @@ class SCC_raw_Params_Dialog(QtGui.QDialog):
         self.ui.openFile.clicked.connect(self.openFileDialog)
 
         if not self.plot.measurement.header.measurement_id:
-            self.MeasurementID_Edit.setText(self.plot.measurement.time_axis.start[int(
-                round(a_parent_region.getRegion()[0]))].strftime('%Y%m%d') + mc.STATION_ID + '__')
+            start_time = self.plot.measurement.time_axis.start[int(round(a_parent_region.getRegion()[0]))]
+            new_measurement_id = start_time.strftime('%Y%m%d') + mc.STATION_ID + start_time.strftime('%H%M')
+#            self.MeasurementID_Edit.setText(self.plot.measurement.time_axis.start[int(
+#                round(a_parent_region.getRegion()[0]))].strftime('%Y%m%d') + mc.STATION_ID + '__')
+            self.MeasurementID_Edit.setText(new_measurement_id)
         else:
             self.MeasurementID_Edit.text = self.plot.measurement.header.measurement_id
 
@@ -210,8 +213,11 @@ class SCC_DPcal_Params_Dialog(QtGui.QDialog):
         self.plot = a_plot
         self.parent_region = a_parent_region
         if not self.plot.measurement.header.measurement_id :
-            self.MeasurementID_Edit.setText(self.plot.measurement.time_axis.start[int(
-                round(a_parent_region.getRegion()[0]))].strftime('%Y%m%d') + mc.STATION_ID + '__')
+            start_time = self.plot.measurement.time_axis.start[int(round(a_parent_region.getRegion()[0]))]
+            new_measurement_id = start_time.strftime('%Y%m%d') + mc.STATION_ID + start_time.strftime('%H') + 'dp'
+#            self.MeasurementID_Edit.setText(self.plot.measurement.time_axis.start[int(
+#                round(a_parent_region.getRegion()[0]))].strftime('%Y%m%d') + mc.STATION_ID + '__')
+            self.MeasurementID_Edit.setText(new_measurement_id)
         else:
             self.MeasurementID_Edit.text = self.plot.measurement.header.measurement_id
 

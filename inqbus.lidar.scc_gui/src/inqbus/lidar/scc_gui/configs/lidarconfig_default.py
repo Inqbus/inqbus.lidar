@@ -136,7 +136,7 @@ NB_OF_SCAN_ANGLES = 1
 SCC_RAW_FILENAME_BODY = 'oh_RALPH'
 
 # SCC station ID
-STATION_ID = 'oh'
+STATION_ID = 'hpb'
 
 # -------------------------------------------------------------------
 # plot configurations

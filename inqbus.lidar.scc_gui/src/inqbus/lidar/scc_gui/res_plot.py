@@ -38,47 +38,40 @@ class DataExport(object):
 
     def export_all(self):
         if self.data.data['version'] == 'nc4-cf':
-            self.export_mwl()
-
+#            self.export_mwl()
             for dtype in mc.RES_VAR_NAMES.keys():
                 self.export_dtype_cf(dtype)
-
         else:
             for dtype in mc.RES_VAR_NAMES.keys():
                 self.export_dtype(dtype)
+
+    def export_general_cf(self, file):
+        self.write_header_cf(file)
+        #file.flush()
+        logger.info("Finished Header ")
+
+        self.write_global_variables_cf(file)
+        #file.flush()
+        logger.info("Finished writing global variables ")
 
     def export_mwl(self):
         filename = self.data.station_id + self.data.data['start_time'].strftime('%y%m%d%H%M') + '.mwl.nc'
         logger.info("export mwl file %s" %filename)
 
-        file = self.create_file(filename)
-
-        self.write_header_cf(file)
-        file.flush()
-        logger.info("Finished Header ")
-
-        self.write_global_variables(file)
-        file.flush()
-        logger.info("Finished writing global variables ")
-
+        file = self.create_file_cf(filename)
+        self.export_general_cf(file)
         file.close()
 
     def export_dtype_cf(self, dtype):
         if self.data.data[dtype]['exists']:
-            filename = self.data.station_id + self.data.data['start_time'].strftime('%y%m%d%H%M') + '.' + dtype
+            filename = self.data.station_id + self.data.data['start_time'].strftime('%y%m%d%H%M') + '.' + dtype + '.nc'
         else:
             return
 
-        file = self.create_file(filename)
+        file = self.create_file_cf(filename)
+        self.export_general_cf(file)
 
-        self.write_header_cf(file)
-        file.flush()
-        logger.info("Finished Header %s" % dtype)
-
-        self.write_global_variables(file)
-        file.flush()
-        logger.info("Finished writing global variables ")
-
+        self.write_variables_cf(file, dtype)
         file.close()
 
     def export_dtype(self, dtype):
@@ -96,6 +89,12 @@ class DataExport(object):
         file.flush()
         logger.info("Finished data %s" % dtype)
         file.close()
+
+    def create_file_cf(self, filename):
+        full_filename = os.path.join(self.export_dir, filename)
+
+        outfile = Dataset(full_filename, 'w', format="NETCDF4")
+        return outfile
 
     def create_file(self, filename):
         full_filename = os.path.join(self.export_dir, filename)
@@ -116,10 +115,10 @@ class DataExport(object):
             attr_value = data['global_attributes'][attr]
             if isinstance(attr_value, OrderedDict):
                 continue
-            setattr(file, attr, data['global_attributes'][attr])
-            file.flush()
+            file.setncattr(attr, data['global_attributes'][attr])
+#            file.flush()
 
-        file.comments = data['Comments']
+        file.comment = data['Comments']
         file.measurement_start_datetime = data['start_time'].strftime('%Y-%m-%dT%H:%M:%SZ')
         file.measurement_stop_datetime = data['end_time'].strftime('%Y-%m-%dT%H:%M:%SZ')
 
@@ -141,7 +140,7 @@ class DataExport(object):
         file.StopTime_UT = int(data['end_time'].strftime(
             '%H%M%S'))
 
-    def write_global_variables(self, nc_file):
+    def write_global_variables_cf(self, nc_file):
         for v in self.data.data['global_vars']:
             orig_v = self.data.data['global_vars'][v]
 
@@ -153,7 +152,7 @@ class DataExport(object):
                 setattr(var, v_att, orig_v['attrs'][v_att])
 
             #set variable value
-            var.assignValue(orig_v['value'])
+            var[:] = orig_v['values'][:]
 
     def write_variables(self, file, dtype):
         export_data = {}
@@ -209,6 +208,64 @@ class DataExport(object):
                 var[:] = data
 
 
+    def write_variables_cf(self, file, dtype):
+        export_data = {}
+        points = 0
+
+        for col in mc.RES_VAR_NAMES_CF[dtype]:
+#            if not (col in mc.RES_VAR_NAME_ALIAS):
+            data = self.data.data[mc.RES_VAR_NAMES_CF[dtype][col]]
+            if data['exists']:
+                if 'mean' in data:
+                    export_data[col] = data['mean']['data']
+
+                    export_data['error_' + col] = data['mean']['error']
+
+                    if not ('altitude' in export_data):
+                        export_data['altitude'] = data['mean']['alt'] + self.data.data['Altitude_meter_asl']
+                    else:
+                        if not np.array_equal(export_data['altitude'],
+                                              (data['mean']['alt'] + self.data.data['Altitude_meter_asl'])):
+                            logger.info('altitude axes for export are different in %s' % (dtype))
+
+                    if not ('vertical_resolution' in export_data):
+                        export_data['vertical_resolution'] = data['mean']['vert_res']
+                    else:
+                        if not np.array_equal(export_data['vertical_resolution'], data['mean']['vert_res']):
+                            logger.info('vertical resolution profiles for export are different in %s' % (dtype))
+
+                    if 'cloud' in data['mean']:
+                        if not ('cloud_mask' in export_data):
+                            export_data['cloud_mask'] = data['mean']['cloud']
+                        else:
+                            if not np.array_equal(export_data['cloud_mask'], data['mean']['cloud']):
+                                logger.info('cloud profiles for export are different in %s' % (dtype))
+
+                    points = max(points, export_data[col].size)
+
+                else:
+                    logger.info('No mean found for col %s in dtype %s' % (col, dtype))
+            else:
+                logger.info('No %s data found for %s' % (col, dtype))
+
+        alt_dim = file.createDimension('altitude', points)
+        time_dim = file.createDimension('time', 1)
+        wl_dim = file.createDimension('wavelength', 1)
+        nv_dim = file.createDimension('nv', 2)
+
+        for col in export_data.keys():
+            data = export_data[col]
+
+            if not np.all(np.isnan(data)):
+                var = file.createVariable(col, data.dtype.type, ('wavelength', 'time', 'altitude'))
+
+                # create variable attributes
+                for v_att in mc.VARIABLE_ATTRIBUTES[col]:
+                    setattr(var, v_att, mc.VARIABLE_ATTRIBUTES[col][v_att])
+
+                var[:] = data
+
+
 class ResultData(object):
 
     @classmethod
@@ -229,7 +286,8 @@ class ResultData(object):
         obj.axis_limits.update(mc.RES_AXES_LIMITS)
         meas_id = os.path.split(filepath)[-1]
         obj.meas_id = meas_id
-        obj.station_id = meas_id[8:10]
+        if len(meas_id) == 12:
+            obj.station_id = meas_id[8:10]
         obj.filepath = filepath
 
         for filename in os.listdir(filepath):
@@ -256,32 +314,41 @@ class ResultData(object):
     def time_from_nc(self, nc_timestamp):
         return datetime(1970,1,1) + timedelta(seconds=int(nc_timestamp))
 
+
+    def get_attributes(self, parent):
+        attributes = OrderedDict()
+        for att in parent.ncattrs():
+            attributes[att] = parent.getncattr(att)
+        return copy.deepcopy(attributes)
+
+    def read_nc4_var(self, file, varname):
+        if file.variables[varname].size == 1:
+            vdata = np.array([file.variables[varname][0]])
+        else:
+            vdata = file.variables[varname][:]
+
+        return {'attrs': self.get_attributes(file.variables[varname]),
+                 'values': vdata,
+                 'dtype': file.variables[varname].dtype,
+                 'dims': file.variables[varname].dimensions,
+                 }
+
     def read_nc4_file_complete(self, f):
         self.data['version'] = 'nc4-cf'
 
         if not 'global_vars' in self.data:
             self.data['global_vars']= {}
             for gvar in mc.GLOBAL_VARS_CF:
-                self.data['global_vars'][gvar] = {'attrs':OrderedDict(),
-                                                  'value':f.variables[gvar][0],
-                                                  'dtype': f.variables[gvar].dtype,
-                                                  'dims':f.variables[gvar].dimensions,
-                                                  }
-                for att in f.variables[gvar].ncattrs():
-                    self.data['global_vars'][gvar]['attrs'][att] = f.variables[gvar].getncattr(att)
+                self.data['global_vars'][gvar] = self.read_nc4_var(f, gvar)
 
         if not 'global_attributes' in self.data:
-            global_attributes = OrderedDict()
-            for att in f.ncattrs():
-                global_attributes[att] = f.getncattr(att)
-            # copy global (file) attributes
-            self.data['global_attributes'] = copy.deepcopy(global_attributes)
+            self.data['global_attributes'] = self.get_attributes(f)
 
         file_start = self.time_from_nc(f.variables['time_bounds'][0, 0])
         file_end = self.time_from_nc(f.variables['time_bounds'][0, 1])
         self.data['start_time'] = min(self.data['start_time'], file_start)
         self.data['end_time'] = max(self.data['end_time'], file_end)
-        self.data['Comments'] = f.comments#.decode("utf-8")
+        self.data['Comments'] = f.comment#.decode("utf-8")
         self.data['Altitude_meter_asl'] = f.variables['station_altitude'][0]
 
         alt = f.variables['altitude'][:]
@@ -292,16 +359,31 @@ class ResultData(object):
 
         cloud_data = np.ma.masked_array(f.variables['cloud_mask'][0,0,:])
         cloud_data.mask = (cloud_data > 5)
-        cloud_data[np.where(cloud_data > 0)[0]] = 2 # this tool can plot only 1 type of clouds (cirrus = 2). Thus, all flagged cloud bins are set to cirrus
+        cloud_data[np.where((~cloud_data.mask ) & (cloud_data >0))[0]] = 2 # this tool can plot only 1 type of clouds (cirrus = 2). Thus, all flagged cloud bins are set to cirrus
 
         res_data = f.variables['vertical_resolution'][0,0,:]
 
 
         ftype = f.filepath().split('.')[1]
 
-        for v in f.variables.keys():
-            if v in mc.RES_VAR_NAMES_CF[ftype]:
+        for v in mc.RES_VAR_NAMES_CF[ftype]:
+            if v in f.variables.keys() :
                 dtype = mc.RES_VAR_NAMES_CF[ftype][v]
+
+                if not self.data[dtype]['exists']:
+                    # read ancillary data
+                    self.data[dtype]['anc_vars'] = {}
+                    for anc_var in f.variables.keys():
+                        if (not anc_var in mc.GLOBAL_VARS_CF) : # if it is not a global variable
+
+                            # does it belong to another dataype ?
+                            belongs_to_other_dtype = False
+                            for dt in mc.RES_VAR_NAMES_CF[ftype]:
+                                if (dt in anc_var) and (dt != v):
+                                    belongs_to_other_dtype = True
+
+                            if not belongs_to_other_dtype:
+                                self.data[dtype]['anc_vars'][anc_var] = self.read_nc4_var(f, anc_var)
 
                 if not ('single' in self.data[dtype].keys()):
                     self.data[dtype]['single'] = []
@@ -320,71 +402,70 @@ class ResultData(object):
                                                    'vert_res': res_data})
                 self.data[dtype]['exists'] = True
 
-
         f.close()
 
-    def read_nc4_file(self, f):
-        self.data['version'] = 'nc4'
-        file_start = self.time_from_nc(f.variables['time_bounds'][0, 0])
-        file_end = self.time_from_nc(f.variables['time_bounds'][0, 1])
-        self.data['start_time'] = min(self.data['start_time'], file_start)
-        self.data['end_time'] = max(self.data['end_time'], file_end)
-        self.data['Comments'] = f.comments#.decode("utf-8")
-        self.data['Altitude_meter_asl'] = f.variables['station_altitude'][0]
-
-        alt = f.variables['altitude'][:]
-        alt[np.where(alt > 1E30)[0]] = np.nan
-        alt = alt - f.variables['station_altitude'][0]
-
-        self.data['max_alt'] = max(self.data['max_alt'], max(alt))
-
-        cloud_data = np.ma.masked_array(f.variables['cloud_mask'][0,0,:])
-        cloud_data.mask = (cloud_data > 5)
-        cloud_data[np.where(cloud_data > 0)[0]] = 2 # this tool can plot only 1 type of clouds (cirrus = 2). Thus, all flagged cloud bins are set to cirrus
-
-        res_data = f.variables['vertical_resolution'][0,0,:]
-
-        global_attributes = OrderedDict()
-        for att in f.ncattrs():
-            global_attributes[att] = f.getncattr(att)
-
-        ftype = f.filepath().split('.')[1]
-
-        #for v in f.variables.keys():
-        #    dtype = mc.RES_VAR_NAMES_CF[ftype][v]
-        #    if v in mc.RES_VAR_NAMES_CF[ftype]:
-
-        for v in mc.RES_VAR_NAMES_CF[ftype]:
-            if v in f.variables.keys():
-
-                if v in mc.RES_VAR_NAME_ALIAS.keys():
-                    va = mc.RES_VAR_NAME_ALIAS[v]
-                else:
-                    va = v
-
-                dtype = mc.RES_VAR_NAMES_CF[ftype][v]
-
-                if not ('single' in self.data[dtype].keys()):
-                    self.data[dtype]['single'] = []
-
-                vdata = f.variables[v][0,0,:]
-                vdata[np.where(vdata > 1E30)[0]] = np.nan
-
-                error_var_name = 'error_' + v
-                edata = f.variables[error_var_name][0,0,:]
-                edata[np.where(edata > 1E30)[0]] = np.nan
-
-                self.data[dtype]['single'].append({'alt': alt,
-                                                   'data': vdata ,
-                                                   'error': edata ,
-                                                   'cloud': cloud_data,
-                                                   'vert_res': res_data})
-                self.data[dtype]['exists'] = True
-
-                # copy global (file) attributes
-                self.data[dtype]['attributes'] = copy.deepcopy(global_attributes)
-
-        f.close()
+    # def read_nc4_file(self, f):
+    #     self.data['version'] = 'nc4'
+    #     file_start = self.time_from_nc(f.variables['time_bounds'][0, 0])
+    #     file_end = self.time_from_nc(f.variables['time_bounds'][0, 1])
+    #     self.data['start_time'] = min(self.data['start_time'], file_start)
+    #     self.data['end_time'] = max(self.data['end_time'], file_end)
+    #     self.data['comment'] = f.comments#.decode("utf-8")
+    #     self.data['Altitude_meter_asl'] = f.variables['station_altitude'][0]
+    #
+    #     alt = f.variables['altitude'][:]
+    #     alt[np.where(alt > 1E30)[0]] = np.nan
+    #     alt = alt - f.variables['station_altitude'][0]
+    #
+    #     self.data['max_alt'] = max(self.data['max_alt'], max(alt))
+    #
+    #     cloud_data = np.ma.masked_array(f.variables['cloud_mask'][0,0,:])
+    #     cloud_data.mask = (cloud_data > 5)
+    #     cloud_data[np.where(cloud_data > 0)[0]] = 2 # this tool can plot only 1 type of clouds (cirrus = 2). Thus, all flagged cloud bins are set to cirrus
+    #
+    #     res_data = f.variables['vertical_resolution'][0,0,:]
+    #
+    #     global_attributes = OrderedDict()
+    #     for att in f.ncattrs():
+    #         global_attributes[att] = f.getncattr(att)
+    #
+    #     ftype = f.filepath().split('.')[1]
+    #
+    #     #for v in f.variables.keys():
+    #     #    dtype = mc.RES_VAR_NAMES_CF[ftype][v]
+    #     #    if v in mc.RES_VAR_NAMES_CF[ftype]:
+    #
+    #     for v in mc.RES_VAR_NAMES_CF[ftype]:
+    #         if v in f.variables.keys():
+    #
+    #             if v in mc.RES_VAR_NAME_ALIAS.keys():
+    #                 va = mc.RES_VAR_NAME_ALIAS[v]
+    #             else:
+    #                 va = v
+    #
+    #             dtype = mc.RES_VAR_NAMES_CF[ftype][v]
+    #
+    #             if not ('single' in self.data[dtype].keys()):
+    #                 self.data[dtype]['single'] = []
+    #
+    #             vdata = f.variables[v][0,0,:]
+    #             vdata[np.where(vdata > 1E30)[0]] = np.nan
+    #
+    #             error_var_name = 'error_' + v
+    #             edata = f.variables[error_var_name][0,0,:]
+    #             edata[np.where(edata > 1E30)[0]] = np.nan
+    #
+    #             self.data[dtype]['single'].append({'alt': alt,
+    #                                                'data': vdata ,
+    #                                                'error': edata ,
+    #                                                'cloud': cloud_data,
+    #                                                'vert_res': res_data})
+    #             self.data[dtype]['exists'] = True
+    #
+    #             # copy global (file) attributes
+    #             self.data[dtype]['attributes'] = copy.deepcopy(global_attributes)
+    #
+    #     f.close()
 
     def read_nc3_file(self, f):
         self.data['version'] = 'nc3'
