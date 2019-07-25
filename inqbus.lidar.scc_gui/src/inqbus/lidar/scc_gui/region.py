@@ -11,6 +11,16 @@ from inqbus.lidar.scc_gui.configs.base_config import resource_path
 from inqbus.lidar.scc_gui.util import qt2pythonStr
 
 
+class CloudRegionMenu(QtGui.QMenu):
+    def __init__(self, view):
+        QtGui.QMenu.__init__(self)
+
+        self.view = view
+
+        self.set_cirrus = self.addAction('label as cirrus')
+        self.invalid.triggered.connect(self.view.set_cirrus)
+
+
 class RegionMenu(QtGui.QMenu):
     def __init__(self, view):
         QtGui.QMenu.__init__(self)
@@ -245,6 +255,51 @@ class SCC_DPcal_Params_Dialog(QtGui.QDialog):
         super(SCC_DPcal_Params_Dialog, self).reject()
 
 
+class MenuLinearRegionItemHorizontal(LinearRegionItem):
+    """
+    Region with a seperate menu
+    """
+
+    def __init__(self, plot, menu=RegionMenu, orientation=LinearRegionItem.Horizontal, **kwargs):
+        """
+        Takes additional kwarg menu which is a menu instance
+        :param kwargs:
+        :return:
+        """
+
+        super(MenuLinearRegionItem, self).__init__(**kwargs)
+        self.menu = menu(self)
+        self.plot = plot
+        self.isValid = True
+        self.setBrush(mc.REGION_NORMAL_BRUSH)
+
+    # def mouseClickEvent(self, ev):
+    #     if self.moving and ev.button() == QtCore.Qt.RightButton:
+    #         super(MenuLinearRegionItem, self).mouseClickEvent(ev)
+    #     elif ev.button() == QtCore.Qt.RightButton:
+    #         ev.accept()
+    #         self.raiseContextMenu(ev)
+    #
+    # def getMenu(self, ev):
+    #     return self.menu
+    #
+    # def raiseContextMenu(self, ev):
+    #     menu = self.getMenu(ev)
+    #     menu.popup(ev.screenPos().toPoint())
+    #
+    # def set_invalid(self):
+    #     self.isValid = False
+    #     self.setBrush(mc.REGION_INVALID_BRUSH)
+    #     self.update()
+    #     self.plot.update_region_masks()
+    #     self.plot.plot_profile(self.plot.regions.full_range)
+    #
+    # def delete(self):
+    #     self.plot.delete_region(self)
+    #     self.plot.update_region_masks()
+    #     self.plot.plot_profile(self.plot.regions.full_range)
+
+
 class MenuLinearRegionItem(LinearRegionItem):
     """
     Region with a seperate menu
@@ -297,7 +352,7 @@ class MenuLinearRegionItem(LinearRegionItem):
 
     def to_end(self):
         rgn = self.getRegion()
-        new_rgn = (rgn[0], len(self.plot.time_axis.axis_data))
+        new_rgn = (rgn[0], len(self.plot.time_axis.axis_data)-1)
         self.setRegion(new_rgn)
         self.update()
 

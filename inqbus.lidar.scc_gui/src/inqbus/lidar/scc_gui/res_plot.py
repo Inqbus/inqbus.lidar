@@ -339,7 +339,8 @@ class ResultData(object):
         if not 'global_vars' in self.data:
             self.data['global_vars']= {}
             for gvar in mc.GLOBAL_VARS_CF:
-                self.data['global_vars'][gvar] = self.read_nc4_var(f, gvar)
+                if gvar in f.variables:
+                    self.data['global_vars'][gvar] = self.read_nc4_var(f, gvar)
 
         if not 'global_attributes' in self.data:
             self.data['global_attributes'] = self.get_attributes(f)
@@ -357,7 +358,10 @@ class ResultData(object):
 
         self.data['max_alt'] = max(self.data['max_alt'], max(alt))
 
-        cloud_data = np.ma.masked_array(f.variables['cloud_mask'][0,0,:])
+        if f.scc_version > "5.0.0":
+            cloud_data = np.ma.masked_array(f.variables['cloud_mask'][0,:])
+        else:
+            cloud_data = np.ma.masked_array(f.variables['cloud_mask'][0,0,:])
         cloud_data.mask = (cloud_data > 5)
         cloud_data[np.where((~cloud_data.mask ) & (cloud_data >0))[0]] = 2 # this tool can plot only 1 type of clouds (cirrus = 2). Thus, all flagged cloud bins are set to cirrus
 

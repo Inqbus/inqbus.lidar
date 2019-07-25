@@ -241,7 +241,9 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
         else:
             QtGui.QMessageBox.about(
                 self, "%s is outside of measurement time axis" %
-                (start.strftime('%H:%M:%S')))
+                      (start.strftime('%H:%M:%S')))
+#        else:
+#            pass
         lt_end = np.where(self.measurement.time_axis.stop > dt_end)[0]
         if len(lt_end) > 0:
             end_idx = lt_end[0]
@@ -290,6 +292,7 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
         self.profile = self.contour_profile_layout.addPlot()
         self.profile.hideAxis('left')
         self.profile.setLabel('bottom', text='counts', units='counts/s')
+        self.profile.setXRange(0, 1E8)
         # Synchronize the Y-Axis of contour and profile plot
         self.profile.setYLink(self.contour_plot)
         # Todo connect region chnge with profile plotting
@@ -297,12 +300,21 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
     def plot_profile(self, a_region):
         # set the data content for the profile
         # min_time, max_time = self.region.getRegion()
+
+        self.profile.setXRange(0, 1E8)
         min_time = round(a_region[0])
         max_time = round(a_region[1])
+        (min_alt_idx, max_alt_idx) = self.profile.viewRange()[1]
         clear = True
         for chan in self.measurement.pre_processed_signals:
             masked_data = self.measurement.pre_processed_signals[chan].data[self.measurement.mask, :]
-            self.profile.plot(masked_data[min_time:max_time, :].mean(axis=0),
+            (x_ax_min, x_ax_max) = self.profile.viewRange()[0]
+            avrg_data = masked_data[min_time:max_time, :].mean(axis=0)
+            min_data = avrg_data[int(min_alt_idx):int(max_alt_idx)].min()
+            max_data = avrg_data[int(min_alt_idx):int(max_alt_idx)].max()
+            self.profile.setXRange(min(x_ax_min, min_data), max(x_ax_max, max_data))
+
+            self.profile.plot(avrg_data,
                               np.arange(len(self.measurement.z_axis.height_axis.data)),
                               pen=mc.PLOT_PROFILE_COLOR[chan],
                               clear=clear)
