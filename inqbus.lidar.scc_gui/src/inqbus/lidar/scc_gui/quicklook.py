@@ -13,8 +13,8 @@ from inqbus.lidar.scc_gui.axis import DateAxis, HeightAxis
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.histo import Histo
 from inqbus.lidar.scc_gui.image import Image
-from inqbus.lidar.scc_gui.region import MenuLinearRegionItem
-from inqbus.lidar.scc_gui.viewbox import QLFixedViewBox
+from inqbus.lidar.scc_gui.region import MenuLinearRegionItem, MenuLinearRegionItemHorizontal
+from inqbus.lidar.scc_gui.viewbox import QLFixedViewBox, ProfileViewBox
 
 
 class LIDARPlot(pg.GraphicsLayoutWidget):
@@ -25,6 +25,7 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
         self.layout()
         self.define_axis()
         self.regions = Regions((0, len(self.time_axis.axis_data)))
+        self.cloud_regions = Regions((0, len(self.height_axis.axis_data)))
 
         self.setup_countour_plot()
         self.setup_profile_plot()
@@ -267,6 +268,20 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
         self.contour_plot.vb.addItem(region)
         return region
 
+    def cloud_region_selector(self, position):
+        region = MenuLinearRegionItemHorizontal(
+            self, values=[
+                0, 1], orientation=pg.LinearRegionItem.Horizontal)
+
+        start = self.img.mapFromScene(position).y(
+        ) - mc.REGION_INITIAL_WIDTH_IN_BINS / 2
+        end = start + mc.REGION_INITIAL_WIDTH_IN_BINS
+        region.setRegion((start, end))
+        region.setZValue(1000)
+        self.profile.vb.addItem(region)
+
+        return region
+
     def region_of_interest(self):
         # Custom ROI for selecting an image region
         pass
@@ -295,6 +310,8 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
         self.profile.setXRange(0, 1E8)
         # Synchronize the Y-Axis of contour and profile plot
         self.profile.setYLink(self.contour_plot)
+        viewBox = ProfileViewBox(self)
+
         # Todo connect region chnge with profile plotting
 
     def plot_profile(self, a_region):

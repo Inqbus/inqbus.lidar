@@ -260,7 +260,7 @@ class MenuLinearRegionItemHorizontal(LinearRegionItem):
     Region with a seperate menu
     """
 
-    def __init__(self, plot, menu=RegionMenu, orientation=LinearRegionItem.Horizontal, **kwargs):
+    def __init__(self, plot, menu=CloudRegionMenu, **kwargs):
         """
         Takes additional kwarg menu which is a menu instance
         :param kwargs:

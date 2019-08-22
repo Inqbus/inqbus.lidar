@@ -323,6 +323,27 @@ class LimitsViewBoxMenu(ViewBoxMenu):
             self.view().setLimits(yMin=None)
             self.view().setLimits(yMax=None)
 
+class ProfileViewBox(pg.ViewBox):
+    """
+    A viewbox that has truely fixed axis
+    """
+
+    def __init__(self, plot, *args, **kwargs):
+        super(ProfileViewBox, self).__init__(*args, **kwargs)
+#        self.menu = LimitsViewBoxMenu(self)
+        self.plot = plot
+
+    def mouseClickEvent(self, ev):
+        if ev.button() == QtCore.Qt.RightButton and self.menuEnabled():
+            super(ProfileViewBox, self).mouseClickEvent(ev)
+
+    def mouseDoubleClickEvent(self, event):
+        self.mouse_double_click(event)
+
+    def mouse_double_click(self, ev):
+        ev.accept()
+
+        self.plot.add_region(ev.scenePos())
 
 class QLFixedViewBox(pg.ViewBox):
     """
