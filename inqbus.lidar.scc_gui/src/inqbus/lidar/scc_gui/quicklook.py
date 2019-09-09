@@ -13,7 +13,7 @@ from inqbus.lidar.scc_gui.axis import DateAxis, HeightAxis
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.histo import Histo
 from inqbus.lidar.scc_gui.image import Image
-from inqbus.lidar.scc_gui.region import MenuLinearRegionItem, MenuLinearRegionItemHorizontal
+from inqbus.lidar.scc_gui.region import MenuLinearRegionItem, ProfileMenuLinearRegionItem
 from inqbus.lidar.scc_gui.viewbox import QLFixedViewBox, ProfileViewBox
 
 
@@ -269,9 +269,10 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
         return region
 
     def cloud_region_selector(self, position):
-        region = MenuLinearRegionItemHorizontal(
-            self, values=[
-                0, 1], orientation=pg.LinearRegionItem.Horizontal)
+        region = ProfileMenuLinearRegionItem(
+        #region=MenuLinearRegionItem(
+                self, values=[
+                0, 1])
 
         start = self.img.mapFromScene(position).y(
         ) - mc.REGION_INITIAL_WIDTH_IN_BINS / 2
@@ -304,13 +305,14 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
     # PROFILE PLOT
     def setup_profile_plot(self):
         # Profile plot at the right side
-        self.profile = self.contour_profile_layout.addPlot()
+        self.profile = self.contour_profile_layout.addPlot(viewBox=ProfileViewBox(self))
+#        self.profile = self.contour_profile_layout.addPlot()
         self.profile.hideAxis('left')
         self.profile.setLabel('bottom', text='counts', units='counts/s')
         self.profile.setXRange(0, 1E8)
         # Synchronize the Y-Axis of contour and profile plot
         self.profile.setYLink(self.contour_plot)
-        viewBox = ProfileViewBox(self)
+#        viewBox = ProfileViewBox(self)
 
         # Todo connect region chnge with profile plotting
 
@@ -337,7 +339,17 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
                               clear=clear)
             clear = False  # clear only before drawing of the first plot.
 
+    def add_cloud_region(self, position):
+        """
+        Called from the viewbox  self.contour_plot.vb on click of middle mouse button
+        The position is given as float value [0,1] where 0 is left and
+        :return:
+        """
+        region = self.cloud_region_selector(position)
+        self.regions[id(region)] = region
+
     # HISTOGRAM and COLORBAR
+
 
     def setup_histogram(self):
         # Contrast/color control

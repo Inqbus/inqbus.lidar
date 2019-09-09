@@ -11,27 +11,22 @@ from inqbus.lidar.scc_gui.configs.base_config import resource_path
 from inqbus.lidar.scc_gui.util import qt2pythonStr
 
 
-class CloudRegionMenu(QtGui.QMenu):
-    def __init__(self, view):
-        QtGui.QMenu.__init__(self)
-
-        self.view = view
-
-        self.set_cirrus = self.addAction('label as cirrus')
-        self.invalid.triggered.connect(self.view.set_cirrus)
-
-
 class RegionMenu(QtGui.QMenu):
     def __init__(self, view):
         QtGui.QMenu.__init__(self)
+
+        self.delete = self.addAction('Delete region')
+        self.delete.triggered.connect(self.view.delete)
+
+
+class QLRegionMenu(RegionMenu):
+    def __init__(self, view):
+        super(CloudRegionMenu, self).__init__(view)
 
         self.view = view
 
         self.invalid = self.addAction('Set region invalid')
         self.invalid.triggered.connect(self.view.set_invalid)
-
-        self.delete = self.addAction('Delete region')
-        self.delete.triggered.connect(self.view.delete)
 
         self.from_start = self.addAction('From start')
         self.from_start.triggered.connect(self.view.from_start)
@@ -83,6 +78,14 @@ class RegionMenu(QtGui.QMenu):
 
         # self.analyse_telecover = self.addAction('telecover - analyse')
         # self.analyse_telecover.triggered.connect(self.view.analyse_telecover)
+
+
+class CloudRegionMenu(RegionMenu):
+    def __init__(self, view):
+        super(CloudRegionMenu, self).__init__(view)
+
+        #self.set_cirrus = self.addAction('label as cirrus')
+        #self.invalid.triggered.connect(self.view.set_cirrus)
 
 
 class RegionDialog(QtGui.QDialog):
@@ -255,57 +258,12 @@ class SCC_DPcal_Params_Dialog(QtGui.QDialog):
         super(SCC_DPcal_Params_Dialog, self).reject()
 
 
-class MenuLinearRegionItemHorizontal(LinearRegionItem):
-    """
-    Region with a seperate menu
-    """
-
-    def __init__(self, plot, menu=CloudRegionMenu, **kwargs):
-        """
-        Takes additional kwarg menu which is a menu instance
-        :param kwargs:
-        :return:
-        """
-
-        super(MenuLinearRegionItem, self).__init__(**kwargs)
-        self.menu = menu(self)
-        self.plot = plot
-        self.isValid = True
-        self.setBrush(mc.REGION_NORMAL_BRUSH)
-
-    # def mouseClickEvent(self, ev):
-    #     if self.moving and ev.button() == QtCore.Qt.RightButton:
-    #         super(MenuLinearRegionItem, self).mouseClickEvent(ev)
-    #     elif ev.button() == QtCore.Qt.RightButton:
-    #         ev.accept()
-    #         self.raiseContextMenu(ev)
-    #
-    # def getMenu(self, ev):
-    #     return self.menu
-    #
-    # def raiseContextMenu(self, ev):
-    #     menu = self.getMenu(ev)
-    #     menu.popup(ev.screenPos().toPoint())
-    #
-    # def set_invalid(self):
-    #     self.isValid = False
-    #     self.setBrush(mc.REGION_INVALID_BRUSH)
-    #     self.update()
-    #     self.plot.update_region_masks()
-    #     self.plot.plot_profile(self.plot.regions.full_range)
-    #
-    # def delete(self):
-    #     self.plot.delete_region(self)
-    #     self.plot.update_region_masks()
-    #     self.plot.plot_profile(self.plot.regions.full_range)
-
-
 class MenuLinearRegionItem(LinearRegionItem):
     """
     Region with a seperate menu
     """
 
-    def __init__(self, plot, menu=RegionMenu, **kwargs):
+    def __init__(self, plot, menu=QLRegionMenu, **kwargs):
         """
         Takes additional kwarg menu which is a menu instance
         :param kwargs:
@@ -405,3 +363,18 @@ class MenuLinearRegionItem(LinearRegionItem):
     def telecover_set_as_dark(self):
         self.update()
         self.plot.set_telecover_region(self.getRegion(), 'dark')
+
+
+class ProfileMenuLinearRegionItem(MenuLinearRegionItem):
+    """
+    horizontal Region with a seperate menu
+    """
+
+    def __init__(self, plot, menu=RegionMenu, **kwargs):
+        """
+        Takes additional kwarg menu which is a menu instance
+        :param kwargs:
+        :return:
+        """
+
+        super(ProfileMenuLinearRegionItem, self).__init__(plot, menu=CloudRegionMenu, orientation=1, **kwargs)

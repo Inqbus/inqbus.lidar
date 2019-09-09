@@ -343,7 +343,7 @@ class ProfileViewBox(pg.ViewBox):
     def mouse_double_click(self, ev):
         ev.accept()
 
-        self.plot.add_region(ev.scenePos())
+        self.plot.add_cloud_region(ev.scenePos())
 
 class QLFixedViewBox(pg.ViewBox):
     """
