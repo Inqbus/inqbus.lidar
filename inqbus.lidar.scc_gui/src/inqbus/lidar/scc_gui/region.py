@@ -5,6 +5,7 @@ from pyqtgraph import LinearRegionItem
 from pyqtgraph.Qt import QtGui, QtCore, uic
 
 from inqbus.lidar.components.error import NoCalIdxFound, WrongFileFormat, WrongFileStorage
+from inqbus.lidar.components.constants import NO_CLOUD, UNKNOWN_CLOUD, CIRRUS, WATER_CLOUD
 from inqbus.lidar.scc_gui import PROJECT_PATH
 from inqbus.lidar.scc_gui.configs import main_config as mc
 from inqbus.lidar.scc_gui.configs.base_config import resource_path
@@ -15,18 +16,10 @@ class RegionMenu(QtGui.QMenu):
     def __init__(self, view):
         QtGui.QMenu.__init__(self)
 
-        self.delete = self.addAction('Delete region')
-        self.delete.triggered.connect(self.view.delete)
-
-
-class QLRegionMenu(RegionMenu):
-    def __init__(self, view):
-        super(CloudRegionMenu, self).__init__(view)
-
         self.view = view
 
-        self.invalid = self.addAction('Set region invalid')
-        self.invalid.triggered.connect(self.view.set_invalid)
+        self.delete = self.addAction('Delete region')
+        self.delete.triggered.connect(self.view.delete)
 
         self.from_start = self.addAction('From start')
         self.from_start.triggered.connect(self.view.from_start)
@@ -34,11 +27,30 @@ class QLRegionMenu(RegionMenu):
         self.to_end = self.addAction('To end')
         self.to_end.triggered.connect(self.view.to_end)
 
+
+class QLRegionMenu(RegionMenu):
+    def __init__(self, view):
+        super(QLRegionMenu, self).__init__(view)
+
+#        self.view = view
+
+#        self.delete = self.addAction('Delete region')
+#        self.delete.triggered.connect(self.view.delete)
+
+#        self.from_start = self.addAction('From start')
+#        self.from_start.triggered.connect(self.view.from_start)
+
+#        self.to_end = self.addAction('To end')
+#        self.to_end.triggered.connect(self.view.to_end)
+
         self.period_dialog = self.addAction('Set time period')
         self.period_dialog.triggered.connect(self.view.period_dialog)
 
         self.show = self.addAction('Show')
         self.show.triggered.connect(self.view.show)
+
+        self.invalid = self.addAction('Set region invalid')
+        self.invalid.triggered.connect(self.view.set_invalid)
 
         self.addSeparator()
 
@@ -84,8 +96,22 @@ class CloudRegionMenu(RegionMenu):
     def __init__(self, view):
         super(CloudRegionMenu, self).__init__(view)
 
-        #self.set_cirrus = self.addAction('label as cirrus')
-        #self.invalid.triggered.connect(self.view.set_cirrus)
+        self.addSeparator()
+
+        self.set_cirrus = self.addAction('label as cirrus')
+        self.set_cirrus.triggered.connect(self.view.set_cirrus)
+
+        self.set_water_cloud = self.addAction('label as water cloud')
+        self.set_water_cloud.triggered.connect(self.view.set_water_cloud)
+
+        self.set_unknown_cloud = self.addAction('label as unknown cloud')
+        self.set_unknown_cloud.triggered.connect(self.view.set_unknown_cloud)
+
+        self.set_no_cloud = self.addAction('label as cloud free')
+        self.set_no_cloud.triggered.connect(self.view.set_no_cloud)
+
+        self.remove_cloud_mask = self.addAction('remove cloud mask')
+        self.remove_cloud_mask.triggered.connect(self.view.remove_cloud_mask)
 
 
 class RegionDialog(QtGui.QDialog):
@@ -378,3 +404,23 @@ class ProfileMenuLinearRegionItem(MenuLinearRegionItem):
         """
 
         super(ProfileMenuLinearRegionItem, self).__init__(plot, menu=CloudRegionMenu, orientation=1, **kwargs)
+
+    def set_cirrus(self):
+        self.update()
+        self.plot.set_cloud_region(self.getRegion(), CIRRUS)
+
+    def set_no_cloud(self):
+        self.update()
+        self.plot.set_cloud_region(self.getRegion(), NO_CLOUD)
+
+    def set_water_cloud(self):
+        self.update()
+        self.plot.set_cloud_region(self.getRegion(), WATER_CLOUD)
+
+    def set_unknown_cloud(self):
+        self.update()
+        self.plot.set_cloud_region(self.getRegion(), UNKNOWN_CLOUD)
+
+    def remove_cloud_mask(self):
+        self.update()
+        self.plot.remove_cloud_mask()

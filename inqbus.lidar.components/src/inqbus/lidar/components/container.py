@@ -14,6 +14,7 @@ from scipy.io import netcdf
 
 from inqbus.lidar.components import nameddict, error
 from inqbus.lidar.components.error import NoCalIdxFound, PathDoesNotExist
+from inqbus.lidar.components.constants import NO_CLOUD, UNKNOWN_CLOUD, CIRRUS, WATER_CLOUD, NO_CLOUD_MASK, MANUAL_CLOUD_MASK
 from inqbus.lidar.components.util import get_file_from_path
 from inqbus.lidar.scc_gui.configs import main_config as mc
 
@@ -493,8 +494,14 @@ class ZAxis(object):
         return self._altitude_axis
 
     def m_2_bin(self, altitude_m):
+        """height above lidar to bin"""
         res =  np.where(self._height_axis.data > altitude_m)
         res = res[0][0]
+        return res
+
+    def bin_2_height(self, bin):
+        """bin to height above lidar"""
+        res = self.height_axis[bin - self.header.first_valid_bin]
         return res
 
 
@@ -516,9 +523,22 @@ class Measurement(object):
         self.shutter = None
         self.mask = None
         # will be set by read_signal
+        self.cloud_mask = None
+        # will be set by read_signal
+        self.header.cloud_mask_type = NO_CLOUD_MASK
         self.title = None
         self.telecover_data = {'profiles':{}, 'used_sectors':[], 'sectors_for_avrg':[]}
 
+
+    def set_cloud_region(self, bin_region, cloud_type):
+        """bin_region = selected altitude region in bins (incl. pre-trigger bins). """
+        self.cloud_mask[:, bin_region[0]: bin_region[1]] = cloud_type
+        self.header.cloud_mask_type = MANUAL_CLOUD_MASK
+
+    def remove_cloud_mask(self):
+        """remove complete cloud_mask """
+        self.cloud_mask[:, :] = NO_CLOUD
+        self.header.cloud_mask_type = NO_CLOUD_MASK
 
     def set_telecover_region(self, a_region, sector_name):
         if not sector_name in self.telecover_data['used_sectors']:
@@ -860,6 +880,7 @@ class Measurement(object):
         self.depol_cal_angle = TimeSeries.with_data(
             nc_file.variables['depol_cal_angle'].data, {'dummy': 0})
         self.mask = np.ones((self.header.time_len,), dtype=bool)
+        self.cloud_mask = np.ones((self.header.time_len, self.header.points), dtype=int) * NO_CLOUD
 
         for ch in range(
                 nc_file.dimensions['channel'] +
@@ -1032,6 +1053,10 @@ class Measurement(object):
         time_scale_id_var = nc_file.createVariable('id_timescale',
                                                    'i4', ('channels',))
 
+        if self.header.cloud_mask_type == MANUAL_CLOUD_MASK:
+            cloud_mask_var = nc_file.createVariable('cloud_mask',
+                                                    'i4', ('time', 'points'))
+
         # write data
         for ch in range(self.header.num_channels):
             range_res_var[ch] = self.z_axis.header.range_res
@@ -1054,6 +1079,10 @@ class Measurement(object):
                                               ].data[self.mask][:, :]
 
         angle_var[0] = self.z_axis.header.zenith_angle
+
+        if self.header.cloud_mask_type == MANUAL_CLOUD_MASK:
+            cloud_mask_var[:, :] = self.cloud_mask[self.mask][:, :]
+
 
         #value = 0 -> standard atmosphere, 1 -> sounding, 2 -> temp from model (by SCC)
         if self.sounding:

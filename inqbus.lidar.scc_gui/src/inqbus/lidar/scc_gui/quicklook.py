@@ -216,6 +216,9 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
         region_stop = min([region_stop, self.measurement.mask.size - 1])
         self.measurement.set_telecover_region((region_start, region_stop), sector_name)
 
+    def set_cloud_region(self, alt_region, cloud_type):
+        self.measurement.set_cloud_region(self.clear_region_borders(alt_region), cloud_type)
+
     def save_as_depolcal_scc(self, a_region):
         region_start, region_stop = self.clear_region_borders(a_region)
         region_stop = min([region_stop, self.measurement.mask.size - 1])
