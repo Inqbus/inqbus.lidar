@@ -30,8 +30,10 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
     def construct(self):
         self.windowMapper = QtCore.QSignalMapper(self)
-        self.windowMapper.mapped[QtWidgets.QWidget].connect(
-            self.setActiveSubWindow)
+#        self.windowMapper.mapped[QtWidgets.QWidget].connect(
+#            self.setActiveSubWindow)
+#        self.windowMapper.mapped.connect(
+#            self.setActiveSubWindow)
 
         self.menuNew.actions()[0].triggered.connect(self.newQuicklookPlot)
         self.menuNew.actions()[1].triggered.connect(self.new321Plot)
