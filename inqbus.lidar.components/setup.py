@@ -48,3 +48,8 @@ setup(name='inqbus.lidar.components',
       [console_scripts]
       """,
       )
+#PyQt5
+#numpy
+#matplotlib
+#netcdf4
+#scipy

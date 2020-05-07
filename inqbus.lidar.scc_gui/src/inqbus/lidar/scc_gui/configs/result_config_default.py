@@ -32,7 +32,7 @@ GLOBAL_VARS_CF = {'latitude':{},
                   'time_bounds':{},
                   'error_retrieval_method':{},
                   'shots':{},
-                  'input_file':{},
+#                  'input_file':{},
                   }
 
 VARIABLE_ATTRIBUTES = { 'altitude': {'long_name': "height above sea level",

@@ -1084,11 +1084,11 @@ class Measurement(object):
             cloud_mask_var[:, :] = self.cloud_mask[self.mask][:, :]
 
 
-        #value = 0 -> standard atmosphere, 1 -> sounding, 2 -> temp from model (by SCC)
+        #value = 0 -> automatic (try model - if available, next use standard atmosphere), 1 -> sounding, 2 -> temp from model (by SCC)
         if self.sounding:
             mol_calc_var.assignValue(1)
         else:
-            mol_calc_var.assignValue(2)
+            mol_calc_var.assignValue(0)
 
         pres_var.assignValue(self.header.pressure)
         temp_var.assignValue(self.header.temperature)

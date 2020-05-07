@@ -51,3 +51,6 @@ setup(name='lidar.scc_gui',
       quicklook = lidar.scc_gui.quicklook:main
       """,
       )
+
+#pyqtgraph
+#qtpy
