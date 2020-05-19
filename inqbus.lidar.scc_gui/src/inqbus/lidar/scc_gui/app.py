@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 import traceback as tb
 
 from PyQt5 import QtCore, QtWidgets, uic, QtGui
@@ -14,6 +15,9 @@ from inqbus.lidar.scc_gui.res_plot import ResultData, ResultPlot
 from inqbus.lidar.scc_gui.util import qt2pythonStr
 
 os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
+
+def except_hook(cls, exception, traceback):
+    sys.__excepthook__(cls, exception, traceback)
 
 class Ui_MainWindow(QtWidgets.QMainWindow):
 
@@ -110,23 +114,25 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             MDI_win.showMaximized()
 
     def new321Plot(self):
-        try:
-            file_path = self.showFolderOpenDialog()
+#        try:
+        file_path = self.showFolderOpenDialog()
 
-            result_data = ResultData.from_directory(file_path)
+        result_data = ResultData.from_directory(file_path)
 
-            MDI_win = QtWidgets.QMdiSubWindow(self)
+        MDI_win = QtWidgets.QMdiSubWindow(self)
 
-            GraphicsView = ResultPlot(MDI_win)
-            GraphicsView.setup(result_data)
+        GraphicsView = ResultPlot(MDI_win)
+        GraphicsView.setup(result_data)
 
-            MDI_win.setWidget(GraphicsView)
-            MDI_win.setWindowTitle(GraphicsView.title)
+        MDI_win.setWidget(GraphicsView)
+        MDI_win.setWindowTitle(GraphicsView.title)
 
-            self.mdiArea.addSubWindow(MDI_win)
-            MDI_win.showMaximized()
-        except Exception as e:
-            pass
+        self.mdiArea.addSubWindow(MDI_win)
+        MDI_win.showMaximized()
+#        except Exception as e:
+#            exc_type, exc_value, exc_traceback = sys.exc_info()
+#            a = traceback.format_tb(exc_traceback)
+#            pass
 
     def new321PlotFromZip(self):
         file_path = self.showZipOpenDialog()
@@ -183,6 +189,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             'Zip_files (*.zip)')[0]
         return qt2pythonStr(file_path)
 
+sys.excepthook = except_hook
 
 app = QtWidgets.QApplication(sys.argv)
 app.setWindowIcon(QtGui.QIcon(resource_path('aesir.ico')))

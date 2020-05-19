@@ -1,6 +1,7 @@
 import copy
 import functools
 import os
+import sys
 import traceback as tb
 import zipfile
 from datetime import datetime, timedelta
@@ -11,6 +12,7 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QMenu, QWidgetAction
+from inqbus.lidar.components.constants import NC_FILL_BYTE
 from pyqtgraph.graphicsItems.LegendItem import ItemSample
 from qtpy import QtGui
 from pyqtgraph.Qt import QtCore
@@ -45,8 +47,8 @@ class DataExport(object):
             for dtype in mc.RES_VAR_NAMES.keys():
                 self.export_dtype(dtype)
 
-    def export_general_cf(self, file):
-        self.write_header_cf(file)
+    def export_general_cf(self, file, dtype):
+        self.write_header_cf(file, dtype)
         #file.flush()
         logger.info("Finished Header ")
 
@@ -64,14 +66,22 @@ class DataExport(object):
 
     def export_dtype_cf(self, dtype):
         if self.data.data[dtype]['exists']:
-            filename = self.data.station_id + self.data.data['start_time'].strftime('%y%m%d%H%M') + '.' + dtype + '.nc'
+#            filename = self.data.station_id + self.data.data['start_time'].strftime('%y%m%d%H%M') + '.' + dtype + '.nc'
+            filename = self.data.data[dtype]['mean']['file_name'].split('_')[1]
         else:
             return
 
         file = self.create_file_cf(filename)
-        self.export_general_cf(file)
 
-        self.write_variables_cf(file, dtype)
+        self.write_data_variables_cf(file, dtype)
+
+        for var in mc.RES_VAR_NAMES_CF[dtype]:
+            var_data = self.data.data[mc.RES_VAR_NAMES_CF[dtype][var]]
+            if var_data['exists']:
+                self.write_variables_cf(file, var_data['anc_vars'])
+
+        self.export_general_cf(file, dtype)
+
         file.close()
 
     def export_dtype(self, dtype):
@@ -85,7 +95,7 @@ class DataExport(object):
         self.write_header(file, dtype)
         logger.info("Finished Header %s" % dtype)
         file.flush()
-        self.write_variables(file, dtype)
+        self.write_data_variables(file, dtype)
         file.flush()
         logger.info("Finished data %s" % dtype)
         file.close()
@@ -109,7 +119,13 @@ class DataExport(object):
         outfile = netcdf.netcdf_file(full_filename, 'w', False, 1)
         return outfile
 
-    def write_header_cf(self, file):
+#    def create_dimensions_cf(self, file):
+#        self.alt_dim = file.createDimension('altitude', points)
+#        self.time_dim = file.createDimension('time', 1)
+#        self.wl_dim = file.createDimension('wavelength', 1)
+#        self.nv_dim = file.createDimension('nv', 2)
+
+    def write_header_cf(self, file, dtype):
         data = self.data.data
         for attr in data['global_attributes']:
             attr_value = data['global_attributes'][attr]
@@ -117,6 +133,13 @@ class DataExport(object):
                 continue
             file.setncattr(attr, data['global_attributes'][attr])
 #            file.flush()
+
+        for attr in data[dtype]['attrs']:
+            attr_value = data[dtype]['attrs'][attr]
+            if isinstance(attr_value, OrderedDict):
+                continue
+            file.setncattr(attr, data[dtype]['attrs'][attr])
+
 
         file.comment = data['Comments']
         file.measurement_start_datetime = data['start_time'].strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -141,20 +164,28 @@ class DataExport(object):
             '%H%M%S'))
 
     def write_global_variables_cf(self, nc_file):
-        for v in self.data.data['global_vars']:
-            orig_v = self.data.data['global_vars'][v]
+        self.write_variables_cf(nc_file, self.data.data['global_vars'])
 
-            #create variable
-            var = nc_file.createVariable(v, orig_v['dtype'], orig_v['dims'])
+    def write_variables_cf(self, nc_file, vars):
+        for v in vars:
+            if not v in nc_file.variables:
+                orig_v = vars[v]
 
-            #create variable attributes
-            for v_att in orig_v['attrs']:
-                setattr(var, v_att, orig_v['attrs'][v_att])
+                #create variable
+                if '_FillValue' in orig_v['attrs']:
+                    var = nc_file.createVariable(v, orig_v['dtype'], orig_v['dims'], fill_value=orig_v['attrs']['_FillValue'])
+                else:
+                    var = nc_file.createVariable(v, orig_v['dtype'], orig_v['dims'])
 
-            #set variable value
-            var[:] = orig_v['values'][:]
+                #create variable attributes
+                for v_att in orig_v['attrs']:
+                    if v_att != '_FillValue':
+                        setattr(var, v_att, orig_v['attrs'][v_att])
 
-    def write_variables(self, file, dtype):
+                #set variable value
+                var[:] = orig_v['values'][:]
+
+    def write_data_variables(self, file, dtype):
         export_data = {}
         points = 0
 
@@ -168,9 +199,9 @@ class DataExport(object):
                         export_data['Error'+col] = data['mean']['error']
 
                         if not ('Altitude' in export_data):
-                            export_data['Altitude'] = data['mean']['alt'] + self.data.data['Altitude_meter_asl']
+                            export_data['Altitude'] = data['mean']['alt'] + self.data.data['station_altitude']
                         else:
-                            if not np.array_equal( export_data['Altitude'], (data['mean']['alt'] + self.data.data['Altitude_meter_asl']) ):
+                            if not np.array_equal( export_data['Altitude'], (data['mean']['alt'] + self.data.data['station_altitude']) ):
                                 logger.info('altitude axes for export are different in %s' % (dtype))
 
                         if not ('VerticalResolution' in export_data):
@@ -202,30 +233,35 @@ class DataExport(object):
                 var = file.createVariable(col, data.dtype.type, ('Length',))
 
                 #create variable attributes
-                for v_att in mc.VARIABLE_ATTRIBUTES[col]:
-                    setattr(var, v_att, mc.VARIABLE_ATTRIBUTES[col][v_att])
+                for v_att in mc.VARIABLE_ATTRIBUTES[col]['attrs']:
+                    if v_att != '_FillValue':
+                        setattr(var, v_att, mc.VARIABLE_ATTRIBUTES[col]['attrs'][v_att])
 
                 var[:] = data
 
 
-    def write_variables_cf(self, file, dtype):
+    def write_data_variables_cf(self, file, dtype):
         export_data = {}
         points = 0
+        fill_value_float = None
 
         for col in mc.RES_VAR_NAMES_CF[dtype]:
 #            if not (col in mc.RES_VAR_NAME_ALIAS):
             data = self.data.data[mc.RES_VAR_NAMES_CF[dtype][col]]
+
             if data['exists']:
                 if 'mean' in data:
                     export_data[col] = data['mean']['data']
+                    fill_value_float = data['mean']['fill_value']
 
                     export_data['error_' + col] = data['mean']['error']
 
                     if not ('altitude' in export_data):
-                        export_data['altitude'] = data['mean']['alt'] + self.data.data['Altitude_meter_asl']
+                        export_data['altitude'] = data['mean']['alt'] + self.data.data['station_altitude']
+
                     else:
                         if not np.array_equal(export_data['altitude'],
-                                              (data['mean']['alt'] + self.data.data['Altitude_meter_asl'])):
+                                              (data['mean']['alt'] + self.data.data['station_altitude'])):
                             logger.info('altitude axes for export are different in %s' % (dtype))
 
                     if not ('vertical_resolution' in export_data):
@@ -257,11 +293,23 @@ class DataExport(object):
             data = export_data[col]
 
             if not np.all(np.isnan(data)):
-                var = file.createVariable(col, data.dtype.type, ('wavelength', 'time', 'altitude'))
+                if '_FillValue' in mc.VARIABLE_ATTRIBUTES[col]['attrs']:
+                    fill_value = mc.VARIABLE_ATTRIBUTES[col]['attrs']['_FillValue']
+                    if fill_value is None:
+                        fill_value = fill_value_float
+                else:
+                    fill_value = None
+
+                if fill_value is None:
+                    var = file.createVariable(col, data.dtype.type, mc.VARIABLE_ATTRIBUTES[col]['dims'])
+                else:
+                    var = file.createVariable(col, data.dtype.type, mc.VARIABLE_ATTRIBUTES[col]['dims'],
+                                          fill_value=fill_value)
 
                 # create variable attributes
-                for v_att in mc.VARIABLE_ATTRIBUTES[col]:
-                    setattr(var, v_att, mc.VARIABLE_ATTRIBUTES[col][v_att])
+                for v_att in mc.VARIABLE_ATTRIBUTES[col]['attrs']:
+                    if v_att != '_FillValue':
+                        setattr(var, v_att, mc.VARIABLE_ATTRIBUTES[col]['attrs'][v_att])
 
                 var[:] = data
 
@@ -288,6 +336,11 @@ class ResultData(object):
         obj.meas_id = meas_id
         if len(meas_id) == 12:
             obj.station_id = meas_id[8:10]
+        elif len(meas_id) == 15:
+            obj.station_id = meas_id[8:11]
+        else:
+            raise Exception('unknown format of measurement id')
+
         obj.filepath = filepath
 
         for filename in os.listdir(filepath):
@@ -315,10 +368,11 @@ class ResultData(object):
         return datetime(1970,1,1) + timedelta(seconds=int(nc_timestamp))
 
 
-    def get_attributes(self, parent):
+    def get_attributes(self, parent, exclude):
         attributes = OrderedDict()
         for att in parent.ncattrs():
-            attributes[att] = parent.getncattr(att)
+            if not att in exclude:
+                attributes[att] = parent.getncattr(att)
         return copy.deepcopy(attributes)
 
     def read_nc4_var(self, file, varname):
@@ -327,7 +381,7 @@ class ResultData(object):
         else:
             vdata = file.variables[varname][:]
 
-        return {'attrs': self.get_attributes(file.variables[varname]),
+        return {'attrs': self.get_attributes(file.variables[varname], {}),
                  'values': vdata,
                  'dtype': file.variables[varname].dtype,
                  'dims': file.variables[varname].dimensions,
@@ -343,30 +397,30 @@ class ResultData(object):
                     self.data['global_vars'][gvar] = self.read_nc4_var(f, gvar)
 
         if not 'global_attributes' in self.data:
-            self.data['global_attributes'] = self.get_attributes(f)
+            self.data['global_attributes'] = self.get_attributes(f, mc.PRODUCT_SPECIFIC_GLOBAL_ATTS)
 
         file_start = self.time_from_nc(f.variables['time_bounds'][0, 0])
         file_end = self.time_from_nc(f.variables['time_bounds'][0, 1])
         self.data['start_time'] = min(self.data['start_time'], file_start)
         self.data['end_time'] = max(self.data['end_time'], file_end)
         self.data['Comments'] = f.comment#.decode("utf-8")
-        self.data['Altitude_meter_asl'] = f.variables['station_altitude'][0]
+        self.data['station_altitude'] = f.variables['station_altitude'][0]
 
-        alt = f.variables['altitude'][:]
-        alt[np.where(alt > 1E30)[0]] = np.nan
+        alt = f.variables['altitude'][:].filled(np.nan)
+        alt[np.where (alt > 1E30)[0]] = np.nan
         alt = alt - f.variables['station_altitude'][0]
 
         self.data['max_alt'] = max(self.data['max_alt'], max(alt))
 
         if f.scc_version > "5.0.0":
-            cloud_data = np.ma.masked_array(f.variables['cloud_mask'][0,:])
+            cloud_data = f.variables['cloud_mask'][0,:].filled(NC_FILL_BYTE)
         else:
-            cloud_data = np.ma.masked_array(f.variables['cloud_mask'][0,0,:])
-        cloud_data.mask = (cloud_data > 5)
-        cloud_data[np.where((~cloud_data.mask ) & (cloud_data >0))[0]] = 2 # this tool can plot only 1 type of clouds (cirrus = 2). Thus, all flagged cloud bins are set to cirrus
+            cloud_data = f.variables['cloud_mask'][0,0,:].filled(NC_FILL_BYTE)
 
-        res_data = f.variables['vertical_resolution'][0,0,:]
+        cloud_data[np.where(cloud_data > 5)[0]] = NC_FILL_BYTE
+        cloud_data[np.where(cloud_data > 0)[0]] = 2 # this tool can plot only 1 type of clouds (cirrus = 2). Thus, all flagged cloud bins are set to cirrus
 
+        res_data = f.variables['vertical_resolution'][0,0,:].filled(np.nan)
 
         ftype = f.filepath().split('.')[1]
 
@@ -375,10 +429,17 @@ class ResultData(object):
                 dtype = mc.RES_VAR_NAMES_CF[ftype][v]
 
                 if not self.data[dtype]['exists']:
+
+                    # read product specific global attributes
+                    self.data[dtype]['attrs'] = {}
+                    for att in mc.PRODUCT_SPECIFIC_GLOBAL_ATTS:
+                        self.data[dtype]['attrs'][att] = f.getncattr(att)
+
                     # read ancillary data
                     self.data[dtype]['anc_vars'] = {}
                     for anc_var in f.variables.keys():
-                        if (not anc_var in mc.GLOBAL_VARS_CF) : # if it is not a global variable
+                        if (not anc_var in mc.GLOBAL_VARS_CF)  and \
+                                (not anc_var in mc.VARIABLE_ATTRIBUTES): # if it is not a global variable
 
                             # does it belong to another dataype ?
                             belongs_to_other_dtype = False
@@ -392,18 +453,19 @@ class ResultData(object):
                 if not ('single' in self.data[dtype].keys()):
                     self.data[dtype]['single'] = []
 
-                vdata = f.variables[v][0, 0, :]
-                vdata[np.where(vdata > 1E30)[0]] = np.nan
+                vdata = f.variables[v][0, 0, :].filled(np.nan)
 
                 error_var_name = 'error_' + v
-                edata = f.variables[error_var_name][0, 0, :]
-                edata[np.where(edata > 1E30)[0]] = np.nan
+                edata = f.variables[error_var_name][0, 0, :].filled(np.nan)
 
                 self.data[dtype]['single'].append({'alt': alt,
                                                    'data': vdata,
                                                    'error': edata,
                                                    'cloud': cloud_data,
-                                                   'vert_res': res_data})
+                                                   'vert_res': res_data,
+                                                   'fill_value': f.variables[v].getncattr('_FillValue'),
+                                                   'file_name': os.path.split(f.filepath())[1]}
+                                                  )
                 self.data[dtype]['exists'] = True
 
         f.close()
@@ -478,7 +540,7 @@ class ResultData(object):
         self.data['start_time'] = min(self.data['start_time'], file_start)
         self.data['end_time'] = max(self.data['end_time'], file_end)
         self.data['Comments'] = f.Comments.decode("utf-8")
-        self.data['Altitude_meter_asl'] = f.Altitude_meter_asl
+        self.data['station_altitude'] = f.Altitude_meter_asl
 
         alt = f.variables['Altitude'].data[:]
         alt[np.where(alt > 1E30)[0]] = np.nan
@@ -551,6 +613,11 @@ class ResultData(object):
         min_start = 15000
         min_start_idx = np.nan
         max_len = 0
+        if 'file_name' in single_profiles[0]:
+            file_name = single_profiles[0]['file_name']
+        else:
+            file_name = None
+
         for p in range(len(single_profiles)):
             while np.isnan(single_profiles[p]['alt'][0]):
                 single_profiles[p]['alt'] = np.delete(single_profiles[p]['alt'], 0)
@@ -573,18 +640,18 @@ class ResultData(object):
 
         for p in range(len(single_profiles)):
 
+            # insert nans in the beginning of profile until beginning of its altitude axis fits to the one of max_start_idx
             idx_shift = int(
                 np.where(single_profiles[min_start_idx]['alt'] == single_profiles[p]['alt'][0])[0])
             fill_array = np.ones(idx_shift) * np.nan
+            fill_array_c = np.ones(idx_shift, dtype=np.int8) * NC_FILL_BYTE
 
             d = np.append(fill_array, single_profiles[p]['data'])
-            # insert nans in the beginning of profile until beginning of its altitude axis fits to the one of max_start_idx
             e = np.append(fill_array, single_profiles[p]['error'])
-            # insert nans in the beginning of profile until beginning of its altitude axis fits to the one of max_start_idx
             w = np.abs(d / e)  # weight = 1/relative error = value/error
             a = np.append(fill_array, single_profiles[p]['alt'])
-            c = np.append(fill_array, single_profiles[p]['cloud'])
             v = np.append(fill_array, single_profiles[p]['vert_res'])
+            c = np.append(fill_array_c, single_profiles[p]['cloud'])
 
             fill_length = max_len - len(d)  # len(single_profiles[p]['data'])
             if fill_length < 0:
@@ -596,11 +663,13 @@ class ResultData(object):
                 vv = v[:fill_length]
             else:
                 fill_array = np.ones(fill_length) * np.nan
+                fill_array_c = np.ones(fill_length, dtype=np.int8) * NC_FILL_BYTE
+
                 dd = np.append(d, fill_array)  # fill the end of profile with nans until its length is equal max_len
-                ee = np.append(e, fill_array)  # fill the end of profile with nans until its length is equal max_len
+                ee = np.append(e, fill_array)
                 ww = np.append(w, fill_array)
                 aa = np.append(a, fill_array)
-                cc = np.append(c, fill_array)
+                cc = np.append(c, fill_array_c)
                 vv = np.append(v, fill_array)
 
             data_arr.append(dd)
@@ -610,11 +679,21 @@ class ResultData(object):
             cloud_arr.append(cc)
             vert_res_arr.append(vv)
 
+            if not file_name is None:
+                file_name = min(file_name, single_profiles[p]['file_name'])
+
+        cloud_mask = np.array(cloud_arr)
+        cloud_mask[:, np.where(cloud_mask == NC_FILL_BYTE)[1]] = NC_FILL_BYTE
+        cloud_mask = np.max(cloud_mask, axis=0)
+
         return {'data': np.average(data_arr, weights=weight_arr, axis=0),
-                                    'error': np.average(err_arr, weights=weight_arr, axis=0),
-                                    'alt': np.max(alt_arr, axis=0),
-                                    'cloud': np.max(cloud_arr, axis=0),
-                                    'vert_res': np.max(vert_res_arr, axis=0)}
+                'error': np.average(err_arr, weights=weight_arr, axis=0),
+                'alt': np.max(alt_arr, axis=0),
+                'cloud': cloud_mask,
+                'vert_res': np.max(vert_res_arr, axis=0),
+                'fill_value': single_profiles[0]['fill_value'],
+                'file_name': file_name
+                }
 
     def get_mean_profile(self):
         for dtype in mc.RES_DTYPES_FOR_MEAN_PROFILE:
@@ -625,7 +704,9 @@ class ResultData(object):
                                                 'data': single_profiles[0]['data'],
                                                 'error': single_profiles[0]['error'],
                                                 'cloud': single_profiles[0]['cloud'],
-                                                'vert_res': single_profiles[0]['vert_res']
+                                                'vert_res': single_profiles[0]['vert_res'],
+                                                'fill_value':single_profiles[0]['fill_value'],
+                                                'file_name': single_profiles[0]['file_name']
                                                 }
                 else:
                     self.data[dtype]['mean'] = self.calc_mean_data(single_profiles)
@@ -700,13 +781,15 @@ class ResultData(object):
                                           'error': error,
                                           'cloud': self.data[ext_type]['mean']['cloud'],
                                           'alt': self.data[ext_type]['mean']['alt'],
-                                          'vert_res': self.data[ext_type]['mean']['vert_res']}
+                                          'vert_res': self.data[ext_type]['mean']['vert_res'],
+                                          'fill_value': self.data[ext_type]['mean']['fill_value']}
 
             self.data[lr_type]['exists'] = True
 
     def get_angstroem_profile(self, target, source1, source2, wl1, wl2):
 
-        logger.info('calculate Angström profile from %s and %s' % (source1, source2))
+#        logger.info('calculate Angström profile from %s and %s' % (source1, source2))
+        logger.info('calculate Angström profile')
 
         if source1['alt'][0] < source2['alt'][0]:
             f_source = source1  # first profile
@@ -768,7 +851,8 @@ class ResultData(object):
                           'error': error,
                           'cloud': np.max([f_cloud, s_cloud], axis = 0),
                           'alt': np.max([f_alt, s_alt ], axis = 0),
-                          'vert_res': np.max([f_vert_res, s_vert_res ], axis = 0)}
+                          'vert_res': np.max([f_vert_res, s_vert_res ], axis = 0),
+                          'fill_value': f_source['fill_value']}
         target['exists'] = True
 
     def set_axes_limits(self):

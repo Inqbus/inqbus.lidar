@@ -544,7 +544,7 @@ class Measurement(object):
         if not sector_name in self.telecover_data['used_sectors']:
             self.telecover_data['used_sectors'].append(sector_name)
 
-            if (sector_name != 'north2') :#and (sector_name != 'dark') and (sector_name != 'rayleigh'):
+            if (sector_name != 'north2') and (sector_name != 'dark') and (sector_name != 'rayleigh'):
                 self.telecover_data['sectors_for_avrg'].append(sector_name)
 
         self.telecover_data['profiles'][sector_name] = {'start_idx': a_region[0], 'stop_idx': a_region[1]}
