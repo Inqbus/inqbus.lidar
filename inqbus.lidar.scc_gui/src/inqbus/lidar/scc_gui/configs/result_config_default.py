@@ -25,8 +25,9 @@ PRODUCT_SPECIFIC_GLOBAL_ATTS = {'input_file': {},
 
 # NetCDF variables which are the same in all product files of one measurement
 GLOBAL_VARS_CF = {#'altitude': {},
+                  'molecular_calculation_source': {},
                   'atmospheric_molecular_calculation_source': {},
-                  'atmospheric_molecular_calculation_source_file': {},
+                  'molecular_calculation_source_file': {},
                   'cirrus_contamination': {},
                   'cirrus_contamination_source': {},
 #                  'cloud_mask':{},
@@ -116,6 +117,11 @@ VARIABLE_ATTRIBUTES = { 'altitude': {'dims': ('altitude'),
                                                          'coordinates': "longitude latitude",
                                                          'units': '1',
                                                          '_FillValue': None,
+                                                         }},
+                        'assumed_particle_lidar_ratio': {'dims': ('wavelength', 'time', 'altitude'),
+                                                         'attrs': {'long_name': "assumed particle lidar ratio for the elastic-only backscatter retrieval",
+                                                        'units': 'sr',
+                                                        '_FillValue': None,
                                                          }},
                         }
 

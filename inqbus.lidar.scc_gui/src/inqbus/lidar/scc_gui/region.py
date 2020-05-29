@@ -82,11 +82,11 @@ class QLRegionMenu(RegionMenu):
         self.telecover_set_as_north2 = self.telecover_menu.addAction('set as north2')
         self.telecover_set_as_north2.triggered.connect(self.view.telecover_set_as_north2)
 
-#        self.telecover_set_as_rayleigh = self.addAction('telecover - set as Rayleigh')
-#        self.telecover_set_as_rayleigh.triggered.connect(self.view.telecover_set_as_rayleigh)
+        self.set_as_rayleigh = self.quality_menu.addAction('set as Rayleigh')
+        self.set_as_rayleigh.triggered.connect(self.view.set_as_rayleigh)
 
-#        self.telecover_set_as_dark = self.addAction('telecover - set as dark')
-#        self.telecover_set_as_dark.triggered.connect(self.view.telecover_set_as_dark)
+#        self.set_as_dark = self.quality_menu.addAction('set as dark')
+#        self.set_as_dark.triggered.connect(self.view.set_as_dark)
 
         # self.analyse_telecover = self.addAction('telecover - analyse')
         # self.analyse_telecover.triggered.connect(self.view.analyse_telecover)
@@ -381,12 +381,12 @@ class MenuLinearRegionItem(LinearRegionItem):
         self.plot.set_telecover_region(self.getRegion(), 'north2')
 
 
-    def telecover_set_as_rayleigh(self):
+    def set_as_rayleigh(self):
         self.update()
         self.plot.set_telecover_region(self.getRegion(), 'rayleigh')
 
 
-    def telecover_set_as_dark(self):
+    def set_as_dark(self):
         self.update()
         self.plot.set_telecover_region(self.getRegion(), 'dark')
 

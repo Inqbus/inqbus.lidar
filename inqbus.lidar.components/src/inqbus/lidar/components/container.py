@@ -527,7 +527,10 @@ class Measurement(object):
         # will be set by read_signal
         self.header.cloud_mask_type = NO_CLOUD_MASK
         self.title = None
-        self.telecover_data = {'profiles':{}, 'used_sectors':[], 'sectors_for_avrg':[]}
+        self.telecover_data = {'profiles':{},
+                               'used_sectors':[],
+                               'used_tc_sectors': [],
+                               'sectors_for_avrg':[]}
 
 
     def set_cloud_region(self, bin_region, cloud_type):
@@ -544,7 +547,10 @@ class Measurement(object):
         if not sector_name in self.telecover_data['used_sectors']:
             self.telecover_data['used_sectors'].append(sector_name)
 
-            if (sector_name != 'north2') and (sector_name != 'dark') and (sector_name != 'rayleigh'):
+            if sector_name in mc.TC_SECTORS:
+                self.telecover_data['used_tc_sectors'].append(sector_name)
+
+            if sector_name in mc. SECTORS_FOR_AVRG:
                 self.telecover_data['sectors_for_avrg'].append(sector_name)
 
         self.telecover_data['profiles'][sector_name] = {'start_idx': a_region[0], 'stop_idx': a_region[1]}
@@ -584,7 +590,7 @@ class Measurement(object):
                 ymax = 0
                 ymin = 1e6
 
-                for sector in self.telecover_data['used_sectors']:
+                for sector in self.telecover_data['used_tc_sectors']:
                     axes[prow, pcol].plot(self.telecover_data['range_smooth'][0: max_plot_bin],
                                           ratio_data[sector][r_name][0: max_plot_bin],
                                           color=mc.TC_COLORS[sector], label=sector)
@@ -600,7 +606,7 @@ class Measurement(object):
                 axes[prow, pcol].grid()
 
                 pcol = 1
-                for sector in self.telecover_data['used_sectors']:
+                for sector in self.telecover_data['used_tc_sectors']:
                     axes[prow, pcol].plot(self.telecover_data['range_smooth'][0: max_plot_bin],
                                           ratio_data[sector][r_name+'_dev'][0: max_plot_bin],
                                           color=mc.TC_COLORS[sector], label=sector)
@@ -647,7 +653,7 @@ class Measurement(object):
             ymax = 0
             ymin = 1e6
             for ch in mc.TC_CHANNELS:
-                for sector in self.telecover_data['used_sectors']:
+                for sector in self.telecover_data['used_tc_sectors']:
                     ymax = max(ymax, np.nanpercentile(data[sector][ch][min_plot_bin+1: max_plot_bin], max_percentile) )
                     ymin = min(ymin, np.nanpercentile(data[sector][ch][min_plot_bin+1: max_plot_bin], min_percentile))
 
@@ -661,7 +667,7 @@ class Measurement(object):
                 prow = int(ch_idx / 2)
                 pcol = ch_idx % 2
 
-                for sector in self.telecover_data['used_sectors']:
+                for sector in self.telecover_data['used_tc_sectors']:
                     axes[prow, pcol].plot(self.telecover_data['range_smooth'][0: max_plot_bin],
                                           data[sector][ch][0: max_plot_bin],
                                           color=mc.TC_COLORS[sector], label=sector)
@@ -768,7 +774,7 @@ class Measurement(object):
 
         # for each channel and each sector: calculate deviation from mean
         self.telecover_data['dev'] = {}
-        for sector in self.telecover_data['used_sectors']:
+        for sector in self.telecover_data['used_tc_sectors']:
             self.telecover_data['dev'][sector] = {}
             for ch in mc.TC_CHANNELS:
                 sector_data = self.telecover_data['sm_norm_signals'][sector][ch]
@@ -779,7 +785,7 @@ class Measurement(object):
 
         # for each channel and each sector: calculate ratio to mean
         self.telecover_data['ratio'] = {}
-        for sector in self.telecover_data['used_sectors']:
+        for sector in self.telecover_data['used_tc_sectors']:
             self.telecover_data['ratio'][sector] = {}
             for ch in mc.TC_CHANNELS:
                 sector_data = self.telecover_data['sm_norm_signals'][sector][ch]
@@ -798,7 +804,7 @@ class Measurement(object):
 
         # for each sector: calculate signal ratios
         self.telecover_data['ratios'] = {}
-        for sector in self.telecover_data['used_sectors']:
+        for sector in self.telecover_data['used_tc_sectors']:
             self.telecover_data['ratios'][sector] = {}
             for r in mc.TC_RATIOS:
                 # calc ratio for each sector
@@ -818,7 +824,7 @@ class Measurement(object):
 
             # calc deviation of signal ratios from their mean
             mean = self.telecover_data['mean'][mc.TC_RATIO_NAMES[r]]
-            for sector in self.telecover_data['used_sectors']:
+            for sector in self.telecover_data['used_tc_sectors']:
                 sector_data = self.telecover_data['ratios'][sector][mc.TC_RATIO_NAMES[r]]
                 dev = (sector_data - mean) / mean
                 dev[np.where(np.isinf(dev))[0]] = np.nan

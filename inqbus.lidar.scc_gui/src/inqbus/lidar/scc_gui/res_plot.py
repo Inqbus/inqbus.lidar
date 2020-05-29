@@ -66,7 +66,15 @@ class DataExport(object):
 
     def export_dtype_cf(self, dtype):
         if self.data.data[dtype]['exists']:
-#            filename = self.data.station_id + self.data.data['start_time'].strftime('%y%m%d%H%M') + '.' + dtype + '.nc'
+            has_data = False
+            for var in mc.RES_VAR_NAMES_CF[dtype]:
+                var_dtype = mc.RES_VAR_NAMES_CF[dtype][var]
+                if 'mean' in self.data.data[var_dtype]:
+                    if not np.all(np.isnan(self.data.data[var_dtype]['mean']['data'])):
+                        has_data = True
+
+            if not has_data:
+                return
             filename = self.data.data[dtype]['mean']['file_name'].split('_')[1]
         else:
             return
@@ -78,7 +86,8 @@ class DataExport(object):
         for var in mc.RES_VAR_NAMES_CF[dtype]:
             var_data = self.data.data[mc.RES_VAR_NAMES_CF[dtype][var]]
             if var_data['exists']:
-                self.write_variables_cf(file, var_data['anc_vars'])
+                if not np.all(np.isnan(var_data['mean']['data'])):
+                    self.write_variables_cf(file, var_data['anc_vars'])
 
         self.export_general_cf(file, dtype)
 
@@ -270,6 +279,13 @@ class DataExport(object):
                         if not np.array_equal(export_data['vertical_resolution'], data['mean']['vert_res']):
                             logger.info('vertical resolution profiles for export are different in %s' % (dtype))
 
+                    if not data['mean']['lr'] is None:
+                        if not ('assumed_particle_lidar_ratio' in export_data):
+                            export_data['assumed_particle_lidar_ratio'] = data['mean']['lr']
+                        else:
+                            if not np.array_equal(export_data['assumed_particle_lidar_ratio'], data['mean']['lr']):
+                                logger.info('lr profiles for export are different in %s' % (dtype))
+
                     if 'cloud' in data['mean']:
                         if not ('cloud_mask' in export_data):
                             export_data['cloud_mask'] = data['mean']['cloud']
@@ -394,10 +410,22 @@ class ResultData(object):
             self.data['global_vars']= {}
             for gvar in mc.GLOBAL_VARS_CF:
                 if gvar in f.variables:
-                    self.data['global_vars'][gvar] = self.read_nc4_var(f, gvar)
+                    if gvar == 'molecular_calculation_source':
+                        var = self.read_nc4_var(f, gvar)
+                        if var['values'][0] == 6:
+                            var['values'][0] = 4
+                        self.data['global_vars']['atmospheric_molecular_calculation_source'] = var
+                    else:
+                        self.data['global_vars'][gvar] = self.read_nc4_var(f, gvar)
 
         if not 'global_attributes' in self.data:
             self.data['global_attributes'] = self.get_attributes(f, mc.PRODUCT_SPECIFIC_GLOBAL_ATTS)
+            self.data['global_attributes']['PI_affiliation'] = 'DWD'
+            self.data['global_attributes']['Data_Originator_affiliation'] = 'DWD'
+            self.data['global_attributes']['Data_Originator_email'] = 'ina.mattis@dwd.de'
+            if self.data['global_attributes']['Data_Originator'] == 'ina':
+                self.data['global_attributes']['Data_Originator'] = 'Ina Mattis'
+                self.data['global_attributes']['Data_Originator_email'] = 'ina.mattis@dwd.de'
 
         file_start = self.time_from_nc(f.variables['time_bounds'][0, 0])
         file_end = self.time_from_nc(f.variables['time_bounds'][0, 1])
@@ -421,6 +449,11 @@ class ResultData(object):
         cloud_data[np.where(cloud_data > 0)[0]] = 2 # this tool can plot only 1 type of clouds (cirrus = 2). Thus, all flagged cloud bins are set to cirrus
 
         res_data = f.variables['vertical_resolution'][0,0,:].filled(np.nan)
+
+        if 'assumed_particle_lidar_ratio' in f.variables:
+            lr_data = f.variables['assumed_particle_lidar_ratio'][0,0,:].filled(np.nan)
+        else:
+            lr_data = None
 
         ftype = f.filepath().split('.')[1]
 
@@ -450,8 +483,9 @@ class ResultData(object):
                             if not belongs_to_other_dtype:
                                 self.data[dtype]['anc_vars'][anc_var] = self.read_nc4_var(f, anc_var)
 
-                if not ('single' in self.data[dtype].keys()):
                     self.data[dtype]['single'] = []
+                if not ('single' in self.data[dtype].keys()):
+                    pass
 
                 vdata = f.variables[v][0, 0, :].filled(np.nan)
 
@@ -463,6 +497,7 @@ class ResultData(object):
                                                    'error': edata,
                                                    'cloud': cloud_data,
                                                    'vert_res': res_data,
+                                                   'lr': lr_data,
                                                    'fill_value': f.variables[v].getncattr('_FillValue'),
                                                    'file_name': os.path.split(f.filepath())[1]}
                                                   )
@@ -625,6 +660,8 @@ class ResultData(object):
                 single_profiles[p]['error'] = np.delete(single_profiles[p]['error'], 0)
                 single_profiles[p]['cloud'] = np.delete(single_profiles[p]['cloud'], 0)
                 single_profiles[p]['vert_res'] = np.delete(single_profiles[p]['vert_res'], 0)
+                if not (single_profiles[p]['lr'] is None):
+                    single_profiles[p]['lr'] = np.delete(single_profiles[p]['lr'], 0)
 
             if single_profiles[p]['alt'][0] < min_start:
                 min_start = single_profiles[p]['alt'][0]
@@ -637,6 +674,7 @@ class ResultData(object):
         alt_arr = []
         cloud_arr = []
         vert_res_arr = []
+        lr_arr = []
 
         for p in range(len(single_profiles)):
 
@@ -652,6 +690,13 @@ class ResultData(object):
             a = np.append(fill_array, single_profiles[p]['alt'])
             v = np.append(fill_array, single_profiles[p]['vert_res'])
             c = np.append(fill_array_c, single_profiles[p]['cloud'])
+            if 'lr' in single_profiles[p]:
+                if single_profiles[p]['lr'] is not None:
+                    l = np.append(fill_array, single_profiles[p]['lr'])
+                else:
+                    l = None
+            else:
+                l = None
 
             fill_length = max_len - len(d)  # len(single_profiles[p]['data'])
             if fill_length < 0:
@@ -661,6 +706,10 @@ class ResultData(object):
                 aa = a[:fill_length]
                 cc = c[:fill_length]
                 vv = v[:fill_length]
+                if l is not None:
+                    ll = l[:fill_length]
+                else:
+                    ll = None
             else:
                 fill_array = np.ones(fill_length) * np.nan
                 fill_array_c = np.ones(fill_length, dtype=np.int8) * NC_FILL_BYTE
@@ -671,6 +720,10 @@ class ResultData(object):
                 aa = np.append(a, fill_array)
                 cc = np.append(c, fill_array_c)
                 vv = np.append(v, fill_array)
+                if l is not None:
+                    ll = np.append(l, fill_array)
+                else:
+                    ll = None
 
             data_arr.append(dd)
             err_arr.append(ee)
@@ -678,6 +731,8 @@ class ResultData(object):
             alt_arr.append(aa)
             cloud_arr.append(cc)
             vert_res_arr.append(vv)
+            if ll is not None:
+                lr_arr.append(ll)
 
             if not file_name is None:
                 file_name = min(file_name, single_profiles[p]['file_name'])
@@ -685,12 +740,17 @@ class ResultData(object):
         cloud_mask = np.array(cloud_arr)
         cloud_mask[:, np.where(cloud_mask == NC_FILL_BYTE)[1]] = NC_FILL_BYTE
         cloud_mask = np.max(cloud_mask, axis=0)
+        if len(lr_arr) == len(weight_arr):
+            lr = np.average(lr_arr, weights=weight_arr, axis=0)
+        else:
+            lr = None
 
         return {'data': np.average(data_arr, weights=weight_arr, axis=0),
                 'error': np.average(err_arr, weights=weight_arr, axis=0),
                 'alt': np.max(alt_arr, axis=0),
                 'cloud': cloud_mask,
                 'vert_res': np.max(vert_res_arr, axis=0),
+                'lr': lr,
                 'fill_value': single_profiles[0]['fill_value'],
                 'file_name': file_name
                 }
@@ -705,6 +765,7 @@ class ResultData(object):
                                                 'error': single_profiles[0]['error'],
                                                 'cloud': single_profiles[0]['cloud'],
                                                 'vert_res': single_profiles[0]['vert_res'],
+                                                'lr': single_profiles[0]['lr'],
                                                 'fill_value':single_profiles[0]['fill_value'],
                                                 'file_name': single_profiles[0]['file_name']
                                                 }
