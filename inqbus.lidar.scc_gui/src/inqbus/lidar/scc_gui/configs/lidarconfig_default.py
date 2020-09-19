@@ -182,8 +182,8 @@ GRADIENT = {'ticks': [(0.0, (0, 0, 0, 255)), (1.0, (255, 255, 255, 255))],
 # values of ground pressure and temperature that are provided in SCC raw data file for
 # the calculation of standard atmosphere
 # if a radio sonde is provided, these values are ignored.
-GROUND_PRES = 913.  # hPa
-GROUND_TEMP = 6.  # degC
+GROUND_PRES = 908.  # hPa
+GROUND_TEMP = 8.  # degC
 
 # when reading Wyoming files, the following key words are used to find the beginning and end of the data section
 # = end of header / begin of footer

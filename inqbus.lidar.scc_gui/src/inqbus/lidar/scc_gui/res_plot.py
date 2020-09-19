@@ -12,7 +12,7 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QMenu, QWidgetAction
-from inqbus.lidar.components.constants import NC_FILL_BYTE
+from inqbus.lidar.components.constants import NC_FILL_BYTE, CIRRUS, NO_CLOUD
 from pyqtgraph.graphicsItems.LegendItem import ItemSample
 from qtpy import QtGui
 from pyqtgraph.Qt import QtCore
@@ -446,7 +446,7 @@ class ResultData(object):
             cloud_data = f.variables['cloud_mask'][0,0,:].filled(NC_FILL_BYTE)
 
         cloud_data[np.where(cloud_data > 5)[0]] = NC_FILL_BYTE
-        cloud_data[np.where(cloud_data > 0)[0]] = 2 # this tool can plot only 1 type of clouds (cirrus = 2). Thus, all flagged cloud bins are set to cirrus
+        cloud_data[np.where(cloud_data > 0)[0]] = CIRRUS # this tool can plot only 1 type of clouds (cirrus = 2). Thus, all flagged cloud bins are set to cirrus
 
         res_data = f.variables['vertical_resolution'][0,0,:].filled(np.nan)
 
@@ -987,9 +987,9 @@ class ResultData(object):
         if 'cloud' not in data:
             data['cloud'] = np.full(alt.shape, 1, dtype=float)
 
-        indexes = np.where((alt > min) & (alt < max) & (data['cloud'] > 0) )
+        indexes = np.where((alt > min) & (alt < max) & (data['cloud'] != NC_FILL_BYTE) )
 
-        data['cloud'][indexes] = 2
+        data['cloud'][indexes] = CIRRUS
 
     def remove_cloud(self, min, max, orig_data_path):
 
@@ -1006,7 +1006,7 @@ class ResultData(object):
 
         indexes = np.where((alt > min) & (alt < max))
 
-        data['cloud'][indexes] = 1
+        data['cloud'][indexes] = NO_CLOUD
 
     def export(self):
 

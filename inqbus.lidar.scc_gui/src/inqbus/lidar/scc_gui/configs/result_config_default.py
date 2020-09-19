@@ -123,6 +123,11 @@ VARIABLE_ATTRIBUTES = { 'altitude': {'dims': ('altitude'),
                                                         'units': 'sr',
                                                         '_FillValue': None,
                                                          }},
+                        'assumed_particle_lidar_ratio_error': {'dims': ('wavelength', 'time', 'altitude'),
+                                                         'attrs': {'long_name': "error on assumed particle lidar ratio for the elastic-only backscatter retrieval",
+                                                        'units': 'sr',
+                                                        '_FillValue': None,
+                                                         }},
                         }
 
 RES_VAR_NAME_ALIAS = {'VolumeDepol': 'VolumeDepolarization',
