@@ -235,9 +235,32 @@ class LIDARPlot(pg.GraphicsLayoutWidget):
                 self.measurement.mask[round(rgn[0]):round(rgn[1])] = 0
 
     def get_region_from_time(self, start, end):
-        dt_start = dt.datetime.combine(
-            self.measurement.time_axis.stop[0], start)
-        dt_end = dt.datetime.combine(self.measurement.time_axis.stop[0], end)
+        time_axis_start = self.measurement.time_axis.stop[0]
+        time_axis_end = self.measurement.time_axis.start[-1]
+
+        # if begin and end of time_axis are on the same day
+        if time_axis_start.date() == time_axis_end.date():
+            dt_start = dt.datetime.combine(time_axis_start, start)
+            dt_end = dt.datetime.combine(time_axis_start, end)
+        else:
+            # if period extends over midnight -> use date of day1 for dt_start and date of day2 for dt_end
+            if end < start:
+                dt_start = dt.datetime.combine(time_axis_start, start)
+                dt_end = dt.datetime.combine(time_axis_end, end)
+            # else decide to which day the period belongs
+            else:
+                # if period does not start within day1-part of timeaxis
+                if start < time_axis_start.time():
+                    # if period starts within day2 part of timeaxis
+                    if start < time_axis_end.time():
+                        date = time_axis_end.date()
+                    else: # assume period starts before timeaxis
+                        date = time_axis_start.date()
+                else:
+                    date = time_axis_start.date()
+
+                dt_start = dt.datetime.combine(date, start)
+                dt_end = dt.datetime.combine(date, end)
 
         lt_start = np.where(self.measurement.time_axis.stop > dt_start)[0]
         if len(lt_start) > 0:

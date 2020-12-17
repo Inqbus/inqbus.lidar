@@ -90,28 +90,32 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         MDI_win.setCentralWidget(central_widget)
 
     def newQuicklookPlot(self):
-        file_path = self.showRawOpenDialog()
-        file_name = os.path.basename(file_path)
-        log_file = os.path.join(mc.LIDAR_LOG_PATH, file_name.replace('_','')[:8] + '_temps.txt')
+        file_paths = self.showRawOpenDialog()
+        if file_paths == []:
+            # Cancel button pressed
+            return
+
+        first_file_name = os.path.basename(file_paths[0])
+        log_file = os.path.join(mc.LIDAR_LOG_PATH, first_file_name.replace('_','')[:8] + '_temps.txt')
 
         if not os.path.exists(mc.LIDAR_LOG_PATH):
             logger.warning("%s can not be found. Check if paths are configured correctly and all directories exist." % mc.LIDAR_LOG_PATH)
-        if not file_path:
-            # Cancel button pressed
-            pass
-        else:
-            measurement = Measurement.from_nc_file(file_path, log_file)
 
-            MDI_win = QtWidgets.QMdiSubWindow(self)
+        measurement = Measurement.from_nc_file(file_paths[0], log_file)
+        #if more than 1 filename was selcted -> append second file (more than 2 files are not allowed for now)
+        if len(file_paths) > 1:
+            measurement.append_nc_file(file_paths[1])
 
-            GraphicsView = LIDARPlot(MDI_win)
-            GraphicsView.setup(measurement)
+        MDI_win = QtWidgets.QMdiSubWindow(self)
 
-            MDI_win.setWidget(GraphicsView)
-            MDI_win.setWindowTitle(GraphicsView.title)
+        GraphicsView = LIDARPlot(MDI_win)
+        GraphicsView.setup(measurement)
 
-            self.mdiArea.addSubWindow(MDI_win)
-            MDI_win.showMaximized()
+        MDI_win.setWidget(GraphicsView)
+        MDI_win.setWindowTitle(GraphicsView.title)
+
+        self.mdiArea.addSubWindow(MDI_win)
+        MDI_win.showMaximized()
 
     def new321Plot(self):
 #        try:
@@ -172,12 +176,17 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
     def showRawOpenDialog(self):
         sender = self.sender()
         filename = mc.DATA_PATH
-        file_path = QtWidgets.QFileDialog.getOpenFileName(
+        file_path = QtWidgets.QFileDialog.getOpenFileNames(
             self,
             "Open raw data file",
             QtCore.QDir().filePath(filename),
             'Zip_files (*.zip);;NC_Files (*.nc *.nc4 *.netcdf)')[0]
-        return qt2pythonStr(file_path)
+        file_names = []
+        for fn in file_path:
+            file_names.append(qt2pythonStr(fn))
+#        return qt2pythonStr(file_path)
+        file_names.sort()
+        return file_names
 
     def showZipOpenDialog(self):
         sender = self.sender()

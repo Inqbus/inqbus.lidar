@@ -13,7 +13,7 @@ from netCDF4 import Dataset
 from scipy.io import netcdf
 
 from inqbus.lidar.components import nameddict, error
-from inqbus.lidar.components.error import NoCalIdxFound, PathDoesNotExist
+from inqbus.lidar.components.error import NoCalIdxFound, PathDoesNotExist, FilesAreDifferent
 from inqbus.lidar.components.constants import NO_CLOUD, UNKNOWN_CLOUD, CIRRUS, WATER_CLOUD, NO_CLOUD_MASK, MANUAL_CLOUD_MASK
 from inqbus.lidar.components.util import get_file_from_path
 from inqbus.lidar.scc_gui.configs import main_config as mc
@@ -39,6 +39,19 @@ class BaseContainer(object):
             result.header.attrs = header_info.copy()
 
         return result
+
+    def append_data(self, new_data, orient='h'):
+        """
+        append data of another BaseContainer object
+        :param new_data:
+        :return:
+        """
+        if orient == 'h':
+            self._data = np.hstack((self.data, new_data))
+        elif orient == 'v':
+            self._data = np.vstack((self.data, new_data))
+        else:
+            logger.error('incorrect orientation parameter for BaseContainer.append_data')
 
     @property
     def data(self):
@@ -903,6 +916,54 @@ class Measurement(object):
                 nc_file.variables['raw_signal'].data[:, :, mc.CHAN_NC_POS[ch]], channel_info)
             self.pre_processed_signals[mc.CHANNEL_NAMES[ch]] = PreProcessedSignal.from_rawsig(
                 self.signals[mc.CHANNEL_NAMES[ch]], self.z_axis.range_axis)
+
+        nc_file.close()
+
+
+    def append_nc_file(self, sig_filename):
+        if sig_filename.endswith('.zip'):
+            if os.path.exists(mc.TEMP_PATH):
+                zfile = zipfile.ZipFile(sig_filename)
+                nc_filename = zfile.extract(zfile.namelist()[0], mc.TEMP_PATH)
+                zfile.close()
+            else:
+                logger.error('%s does not exist' % mc.TEMP_PATH)
+                raise PathDoesNotExist
+        elif sig_filename.endswith('.nc'):
+            nc_filename = sig_filename
+
+        nc_file = netcdf.netcdf_file(nc_filename, 'r', False, 1)
+        new_time_len = len(nc_file.variables['measurement_time'].data)
+        self.header.time_len = self.header.time_len + new_time_len
+
+        if self.header.latitude != nc_file.variables['location_coordinates'].data[0] or \
+            self.header.longitude != nc_file.variables['location_coordinates'].data[1] or \
+            self.header.altitude != nc_file.variables['location_height'].getValue() or \
+            self.header.points != nc_file.dimensions['height'] or \
+            self.header.num_channels != nc_file.dimensions['channel'] + mc.NUM_DOUBLE_CHANNELS or \
+            self.header.bin_res != nc_file.variables['measurement_height_resolution'].getValue() or \
+            self.header.zenith_angle != nc_file.variables['zenithangle'].getValue():
+            raise FilesAreDifferent
+
+        new_time_axis = TimeAxis.from_polly_file(nc_file.variables['measurement_time'].data)
+        self.time_axis.append_data(new_time_axis.data)
+        new_shots = TimeSeries.with_data(nc_file.variables['measurement_shots'].data[:, 0], {'dummy': 0})
+        self.shots.append_data(new_shots.data)
+        new_depol_cal_angle = TimeSeries.with_data(nc_file.variables['depol_cal_angle'].data, {'dummy': 0})
+        self.depol_cal_angle.append_data(new_depol_cal_angle.data)
+
+        self.mask = np.hstack((self.mask, np.ones((new_time_len,), dtype=bool)))
+        self.cloud_mask = np.vstack((self.cloud_mask, np.ones((new_time_len, self.header.points), dtype=int) * NO_CLOUD))
+
+        for ch in range(self.header.num_channels):
+            old_sig = self.signals[mc.CHANNEL_NAMES[ch]]
+            new_signal = Signal.from_polly_file(
+                 nc_file.variables['raw_signal'].data[:, :, mc.CHAN_NC_POS[ch]], old_sig.header.attrs)
+            old_sig.append_data(new_signal.data, orient='v')
+
+            old_pp_sig = self.pre_processed_signals[mc.CHANNEL_NAMES[ch]]
+            new_pp_sig = PreProcessedSignal.from_rawsig(new_signal, self.z_axis.range_axis)
+            old_pp_sig.append_data(new_pp_sig.data, orient='v')
 
         nc_file.close()
 

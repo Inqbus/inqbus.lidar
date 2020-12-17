@@ -35,3 +35,8 @@ class PathDoesNotExist(LidarError):
     """
     Raised for missing files and dirs
     """
+
+class FilesAreDifferent(LidarError):
+    """
+    Raised if a raw signal file shall be appended does not fit to existing file information
+    """
