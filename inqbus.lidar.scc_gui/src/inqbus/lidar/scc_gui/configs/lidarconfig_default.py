@@ -121,6 +121,9 @@ CALIB_RANGE_MAX = 3000 #m
 # rounded value of the variable 'depol_cal_angle' in case of REGULAR (no calibration) measurement ?
 CAL_ANGLE_MEASUREMENT = 0
 
+# which channel to use for manual cloud mask
+CLOUD_MASK_CHANNEL_IDX = 5
+
 # -------------------------------------------------------------------
 # general station and lidar configurations
 # -------------------------------------------------------------------

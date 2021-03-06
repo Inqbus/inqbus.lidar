@@ -1123,6 +1123,8 @@ class Measurement(object):
         if self.header.cloud_mask_type == MANUAL_CLOUD_MASK:
             cloud_mask_var = nc_file.createVariable('cloud_mask',
                                                     'i4', ('time', 'points'))
+            cloud_mask_channel_var = nc_file.createVariable('cloud_mask_channel_idx',
+                                                    'i4', ())
 
         # write data
         for ch in range(self.header.num_channels):
@@ -1149,6 +1151,7 @@ class Measurement(object):
 
         if self.header.cloud_mask_type == MANUAL_CLOUD_MASK:
             cloud_mask_var[:, :] = self.cloud_mask[self.mask][:, :]
+            cloud_mask_channel_var.assignValue(mc.CLOUD_MASK_CHANNEL_IDX)
 
 
         #value = 0 -> automatic (try model - if available, next use standard atmosphere), 1 -> sounding, 2 -> temp from model (by SCC)

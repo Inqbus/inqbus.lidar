@@ -403,6 +403,24 @@ class ResultData(object):
                  'dims': file.variables[varname].dimensions,
                  }
 
+    def file_type(self, f):
+        FILE_TYPE = {'000': 'b',
+                     '001': 'e',
+                     '002': 'e',
+                     '003': 'b',
+                     '007': 'b',
+                     '008': 'b',
+                     }
+
+        if f.getncattr('__file_format_version') == '2.0':
+            return f.filepath().split('.')[1]
+        elif f.getncattr('__file_format_version') == '2.1':
+            type_id = f.filepath().split('_')[1]
+            wl = f.filepath().split('_')[2].lstrip('0')
+            return FILE_TYPE[type_id] + wl
+        else:
+            logger.error('unknown file format version {}'.format(f.__file_format_version))
+
     def read_nc4_file_complete(self, f):
         self.data['version'] = 'nc4-cf'
 
@@ -455,7 +473,7 @@ class ResultData(object):
         else:
             lr_data = None
 
-        ftype = f.filepath().split('.')[1]
+        ftype = self.file_type(f)
 
         for v in mc.RES_VAR_NAMES_CF[ftype]:
             if v in f.variables.keys() :
