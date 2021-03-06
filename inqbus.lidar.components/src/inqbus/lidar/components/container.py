@@ -1122,7 +1122,7 @@ class Measurement(object):
 
         if self.header.cloud_mask_type == MANUAL_CLOUD_MASK:
             cloud_mask_var = nc_file.createVariable('cloud_mask',
-                                                    'i4', ('time', 'points'))
+                                                    'i1', ('time', 'points'))
             cloud_mask_channel_var = nc_file.createVariable('cloud_mask_channel_idx',
                                                     'i4', ())
 
