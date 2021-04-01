@@ -991,7 +991,10 @@ class Measurement(object):
             lines = log_file.readlines()
             for l in lines[3:]:
                 line_data = l.split()
-                data_ok = True
+                if len(line_data) >=8:
+                    data_ok = True
+                else:
+                    data_ok = False
                 for ld in line_data[2:]:
                     if float(ld) < -100:
                         data_ok = False
