@@ -75,7 +75,8 @@ class DataExport(object):
 
             if not has_data:
                 return
-            filename = self.data.data[dtype]['mean']['file_name'].split('_')[1]
+#            filename = self.data.data[dtype]['mean']['file_name'].split('_')[1]
+            filename = self.data.data[dtype]['mean']['file_name']
         else:
             return
 
@@ -151,6 +152,7 @@ class DataExport(object):
 
 
         file.comment = data['Comments']
+        file.comment = 'manually qc controlled'
         file.measurement_start_datetime = data['start_time'].strftime('%Y-%m-%dT%H:%M:%SZ')
         file.measurement_stop_datetime = data['end_time'].strftime('%Y-%m-%dT%H:%M:%SZ')
 
@@ -165,6 +167,7 @@ class DataExport(object):
             file.flush()
 
         file.Comments = data['Comments']
+
         file.StartDate = int(data['start_time'].strftime(
             '%Y%m%d'))
         file.StartTime_UT = int(data['start_time'].strftime(
@@ -174,6 +177,7 @@ class DataExport(object):
 
     def write_global_variables_cf(self, nc_file):
         self.write_variables_cf(nc_file, self.data.data['global_vars'])
+        nc_file.variables['scc_product_type'][0] = 1
 
     def write_variables_cf(self, nc_file, vars):
         for v in vars:
@@ -306,9 +310,9 @@ class DataExport(object):
         nv_dim = file.createDimension('nv', 2)
 
         for col in export_data.keys():
-            data = export_data[col]
+            col_data = export_data[col]
 
-            if not np.all(np.isnan(data)):
+            if not np.all(np.isnan(col_data)):
                 if '_FillValue' in mc.VARIABLE_ATTRIBUTES[col]['attrs']:
                     fill_value = mc.VARIABLE_ATTRIBUTES[col]['attrs']['_FillValue']
                     if fill_value is None:
@@ -317,9 +321,9 @@ class DataExport(object):
                     fill_value = None
 
                 if fill_value is None:
-                    var = file.createVariable(col, data.dtype.type, mc.VARIABLE_ATTRIBUTES[col]['dims'])
+                    var = file.createVariable(col, col_data.dtype.type, mc.VARIABLE_ATTRIBUTES[col]['dims'])
                 else:
-                    var = file.createVariable(col, data.dtype.type, mc.VARIABLE_ATTRIBUTES[col]['dims'],
+                    var = file.createVariable(col, col_data.dtype.type, mc.VARIABLE_ATTRIBUTES[col]['dims'],
                                           fill_value=fill_value)
 
                 # create variable attributes
@@ -327,7 +331,7 @@ class DataExport(object):
                     if v_att != '_FillValue':
                         setattr(var, v_att, mc.VARIABLE_ATTRIBUTES[col]['attrs'][v_att])
 
-                var[:] = data
+                var[:] = col_data
 
 
 class ResultData(object):
@@ -678,8 +682,9 @@ class ResultData(object):
                 single_profiles[p]['error'] = np.delete(single_profiles[p]['error'], 0)
                 single_profiles[p]['cloud'] = np.delete(single_profiles[p]['cloud'], 0)
                 single_profiles[p]['vert_res'] = np.delete(single_profiles[p]['vert_res'], 0)
-                if not (single_profiles[p]['lr'] is None):
-                    single_profiles[p]['lr'] = np.delete(single_profiles[p]['lr'], 0)
+                if 'lr' in single_profiles[p]:
+                    if not (single_profiles[p]['lr'] is None):
+                        single_profiles[p]['lr'] = np.delete(single_profiles[p]['lr'], 0)
 
             if single_profiles[p]['alt'][0] < min_start:
                 min_start = single_profiles[p]['alt'][0]
@@ -705,7 +710,7 @@ class ResultData(object):
             d = np.append(fill_array, single_profiles[p]['data'])
             e = np.append(fill_array, single_profiles[p]['error'])
             w = np.abs(d / e)  # weight = 1/relative error = value/error
-            a = np.append(fill_array, single_profiles[p]['alt'])
+            a = np.append(single_profiles[min_start_idx]['alt'][:idx_shift], single_profiles[p]['alt'])
             v = np.append(fill_array, single_profiles[p]['vert_res'])
             c = np.append(fill_array_c, single_profiles[p]['cloud'])
             if 'lr' in single_profiles[p]:
@@ -905,12 +910,15 @@ class ResultData(object):
             s_error = np.interp(f_source['alt'], s_source['alt'], s_source['error'],
                                 left=np.nan,
                                 right=np.nan)  # interpolation of bsc2 profile to alt1 axis, missing values = nan
+            s_cloud = np.interp(f_source['alt'], s_source['alt'], s_source['cloud'],
+                                left=np.nan,
+                                right=np.nan)  # interpolation of bsc2 profile to alt1 axis, missing values = nan
             f_profile = f_source['data']
             f_error = f_source['error']
             f_alt = f_source['alt']
             f_cloud = f_source['cloud']
             s_alt = f_alt
-            s_cloud = s_source['cloud']
+#            s_cloud = s_source['cloud']
             f_vert_res = f_source['vert_res']
             s_vert_res = f_vert_res
 

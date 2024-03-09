@@ -147,7 +147,8 @@ STATION_ID = 'hpb'
 
 # Which channel shall be used to prepare the quicklook?
 # the channel name refers to CHANNEL_NAMES
-QUICKLOOK_CHANNEL = 'chan_5'
+#QUICKLOOK_CHANNEL = 'chan_5'  # 1064
+QUICKLOOK_CHANNEL = 'chan_2'  # 532
 
 # what is the (initial) maximum altitude of the plots?
 MAX_PLOT_ALTITUDE = 15000 #m
@@ -172,7 +173,7 @@ PLOT_ISO_COLOR = 'g'
 
 REGION_INVALID_BRUSH = QtGui.QBrush(QtGui.QColor(255, 0, 0, 50))
 REGION_NORMAL_BRUSH = QtGui.QBrush(QtGui.QColor(0, 0, 255, 50))
-REGION_INITIAL_WIDTH_IN_BINS = 20
+REGION_INITIAL_WIDTH_IN_BINS = 24
 GRADIENT = {'ticks': [(0.0, (0, 0, 0, 255)), (1.0, (255, 255, 255, 255))],
             'mode': 'rgb',
             'edge_colors': [(255, 0, 0), (0, 0, 255)]}

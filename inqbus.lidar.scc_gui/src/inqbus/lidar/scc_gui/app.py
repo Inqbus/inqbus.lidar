@@ -104,7 +104,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         measurement = Measurement.from_nc_file(file_paths[0], log_file)
         #if more than 1 filename was selcted -> append second file (more than 2 files are not allowed for now)
         if len(file_paths) > 1:
-            measurement.append_nc_file(file_paths[1])
+            for fp in file_paths[1:]:
+                measurement.append_nc_file(fp)
 
         MDI_win = QtWidgets.QMdiSubWindow(self)
 
