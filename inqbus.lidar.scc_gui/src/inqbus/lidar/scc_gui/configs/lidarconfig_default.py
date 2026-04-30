@@ -147,8 +147,8 @@ STATION_ID = 'hpb'
 
 # Which channel shall be used to prepare the quicklook?
 # the channel name refers to CHANNEL_NAMES
-#QUICKLOOK_CHANNEL = 'chan_5'  # 1064
-QUICKLOOK_CHANNEL = 'chan_2'  # 532
+QUICKLOOK_CHANNEL = 'chan_5'  # 1064
+# QUICKLOOK_CHANNEL = 'chan_0'  # 532
 
 # what is the (initial) maximum altitude of the plots?
 MAX_PLOT_ALTITUDE = 15000 #m
