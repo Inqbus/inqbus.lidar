@@ -1056,6 +1056,10 @@ class Measurement(object):
     def write_scc_raw_signal(self, filename):
 
         nc_file = Dataset(filename, "w", format="NETCDF4")
+        time_res = (self.time_axis.data[1] - self.time_axis.data[0]).astype('timedelta64[s]').astype('int')
+        time_res_median = np.median(time_res)
+        time_res_threshold = time_res_median * 1.2
+        self.mask[np.where(time_res > time_res_threshold)] = 0
         self.mask[np.where(self.shots.data <= 0)] = 0
         self.mask[np.where(self.depol_cal_angle.data.round()
                            != mc.CAL_ANGLE_MEASUREMENT)] = 0
